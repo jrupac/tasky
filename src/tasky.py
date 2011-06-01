@@ -51,10 +51,11 @@ UNCHANGED = 0
 UPDATED = 1
 DELETED = 2
 
-def Add(task, listID = None):
+def Add(taskInfo):
 	matches = {}
 	i = 1
 	choice = 1
+	(listID, task) = taskInfo
 	
 	if listID is not None:
 		matches[choice] = listID
@@ -139,7 +140,10 @@ def Search(substr):
 			except:
 				print 'Invalid input. Please try again.'
 
-def Remove(task):
+def Remove(taskInfo):
+	global TaskLists
+	(listID, task) = taskInfo
+
 	# If already deleted, do nothing
 	if task['modified'] is DELETED:
 		return
@@ -150,16 +154,16 @@ def Remove(task):
 	del IDToTitle[task['id']]
 	
 	# Also delete all children of deleted tasks
-	for tasklistID in TaskLists:
-		for taskID in TaskLists[tasklistID]:
-			t = TaskLists[tasklistID][taskID]
-			if 'parent' in t and TaskLists[tasklistID][t['parent']]['modified'] is DELETED:
-				t['modified'] = DELETED
-				if t['id'] in IDToTitle:
-					del IDToTitle[t['id']]
+	for taskID in TaskLists[listID]:
+		t = TaskLists[listID][taskID]
+		if 'parent' in t and TaskLists[listID][t['parent']]['modified'] is DELETED:
+			t['modified'] = DELETED
+			if t['id'] in IDToTitle:
+				del IDToTitle[t['id']]
 
-def Toggle(listID, task):
+def Toggle(taskInfo):
 	global TaskLists
+	(listID, task) = taskInfo
 
 	# If already deleted, do nothing
 	if task['modified'] is DELETED:
@@ -297,44 +301,45 @@ def PrintAllTasks():
 					print tab * (depth + 1), arrow, 'Notes: {0}'.format(task['notes'])
 
 def HandleInputArgs(argv):
+	checkEmpty = lambda s : s is '' or s.isspace()
+	splits = ''.join(argv[2:]).split(',')
 	c = argv[1]
+
 	if c is 'a':
 		print 'Adding task...'
-		argc = len(argv)
-		task = { 'title' : argv[2] }
-		if argc > 3:
-			d = time.strptime(argv[3], "%m/%d/%y")
-			task['due'] = str(d.tm_year) + '-' + str(d.tm_mon) + '-' + str(d.tm_mday) + 'T12:00:00.000Z'
-		if argc > 4:
-			task['notes'] = argv[4]
-		if argc > 5:
-			ret = Search(argv[5])
+		task = { 'title' : splits[0] }
+		if not checkEmpty(splits[1]):
+			d = time.strptime(splits[1].lstrip(), "%m/%d/%y")
+			task['due'] = str(d.tm_year) + '-' + str(d.tm_mon) + '-' + \
+			str(d.tm_mday) + 'T12:00:00.000Z'
+		if not checkEmpty(splits[2]):
+			task['notes'] = splits[2].lstrip()
+		if not checkEmpty(splits[3]):
+			ret = Search(splits[3].lstrip())
 			if ret is None:
 				print 'No matches found for parent.'
 			else:
 				(listID, parentTask) = ret
 				task['parent'] = parentTask['id']
-				Add(task, listID)
+				Add((listID, task))
 				return
-		Add(task)
+		Add((None, task))
 	elif c is 'l':
 		PrintAllTasks()
 	elif c is 'r':
 		print 'Removing task...'
-		ret = Search(argv[2])
+		ret = Search(splits[0])
 		if ret is None:
 			print 'No match found.'
 		else:
-			(listID, task) = ret
-			Remove(task)
+			Remove(ret)
 	elif c is 't':
 		print 'Toggling task...'
-		ret = Search(argv[2])
+		ret = Search(splits[0])
 		if ret is None:
 			print 'No match found.'
 		else:
-			(listID, task) = ret
-			Toggle(listID, task)
+			Toggle(ret)
 
 def HandleInput(c):
 	if c is 'a':
@@ -372,9 +377,9 @@ def HandleInput(c):
 			else:
 				(listID, parentTask) = ret
 				task['parent'] = parentTask['id']
-				Add(task, listID)
+				Add((listID, task))
 				return
-		Add(task)
+		Add((None, task))
 	elif c is 'l':
 		PrintAllTasks()
 	elif c is 'r':
@@ -383,19 +388,16 @@ def HandleInput(c):
 		if ret is None:
 			print 'No match found.'
 		else:
-			(listID, task) = ret
-			Remove(task)
+			Remove(ret)
 	elif c is 't':
 		substr = raw_input("Name of task: ")
 		ret = Search(substr)
 		if ret is None:
 			print 'No match found.'
 		else:
-			(listID, task) = ret
-			Toggle(listID, task)
+			Toggle(ret)
 
 def main(*argv):
-	# Retrieve all data
 	print 'Retrieving task lists...'
 	GetData()
 
@@ -409,7 +411,6 @@ def main(*argv):
 				break
 			HandleInput(readIn)
 
-	# Write all changes back
 	print 'Sending changes...'
 	PutData()
 
