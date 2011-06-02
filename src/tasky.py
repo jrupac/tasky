@@ -26,6 +26,9 @@ if len(sys.argv) > 1:
 	subparsers = parser.add_subparsers(dest = 'action')
 
 	parser_a = subparsers.add_parser('a')
+	parser_a.add_argument('-l', '--list', action = 'store_true', \
+	default = False, help = 'If given, the updated lists will be printed\
+	after execution')
 	parser_a.add_argument('-t', '--title', nargs = 1, required = True, \
 	help = 'This non-optional argument specifies the name of the task.')
 	parser_a.add_argument('-d', '--date', nargs = 1, \
@@ -36,12 +39,18 @@ if len(sys.argv) > 1:
 	help = 'This optional argument specifies the name of the task.')
 
 	parser_r = subparsers.add_parser('r')
+	parser_r.add_argument('-l', '--list', action = 'store_true', \
+	default = False, help = 'If given, the updated lists will be printed\
+	after execution')
 	parser_r.add_argument('-t', '--title', nargs = 1, required = True, \
 	help = 'This non-optional argument specifies the name of the task.')
 
 	parser_l = subparsers.add_parser('l')
 
 	parser_t = subparsers.add_parser('t')
+	parser_t.add_argument('-l', '--list', action = 'store_true', \
+	default = False, help = 'If given, the updated lists will be printed\
+	after execution')
 	parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
 	help = 'This non-optional argument specifies the name of the task.')
 	
@@ -373,8 +382,9 @@ def HandleInputArgs(argv):
 		else:
 			print 'Toggling task...'
 			Toggle(ret)
-
-	PrintAllTasks()
+	
+	if argv['list'] is True:
+		PrintAllTasks()
 
 def HandleInput(c):
 	if c is 'a':
