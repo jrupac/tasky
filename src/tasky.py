@@ -8,6 +8,7 @@ from oauth2client.tools import run
 from fabulous.color import strike, bold
 from string import find
 from collections import OrderedDict
+from argparse import ArgumentParser
 
 import httplib2
 import oauth2 as oauth
@@ -16,6 +17,37 @@ import httplib2
 import sys
 import datetime as dt
 import time
+
+parser = None
+
+# Parse arguments
+if len(sys.argv) > 1:
+	parser = ArgumentParser(description = "A Google Tasks Client.")
+	subparsers = parser.add_subparsers(dest = 'action')
+
+	parser_a = subparsers.add_parser('a')
+	parser_a.add_argument('-t', '--title', nargs = 1, required = True, \
+	help = 'This non-optional argument specifies the name of the task.')
+	parser_a.add_argument('-d', '--date', nargs = 1, \
+	help = 'This optional argument must of the of the form MM/DD/YYYY.')
+	parser_a.add_argument('-n', '--note', nargs = 1, \
+	help = 'This optional argument can be any quotation-enclosed string.')
+	parser_a.add_argument('-p', '--parent', nargs = 1, \
+	help = 'This optional argument specifies the name of the task.')
+
+	parser_r = subparsers.add_parser('r')
+	parser_r.add_argument('-t', '--title', nargs = 1, required = True, \
+	help = 'This non-optional argument specifies the name of the task.')
+
+	parser_l = subparsers.add_parser('l')
+
+	parser_t = subparsers.add_parser('t')
+	parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
+	help = 'This non-optional argument specifies the name of the task.')
+	
+	progname = sys.argv[0]
+	sys.argv = vars(parser.parse_args())
+	sys.argv['prog'] = progname
 
 print 'Verifying authentication...'
 FLAGS = gflags.FLAGS
@@ -70,7 +102,7 @@ def Add(taskInfo):
 			return
 		
 		# In case of multiple lists, decide which one
-		if i > 1:
+		if i > 2:
 			for ii in xrange(1, i):
 				print '({0}): {1}'.format(ii, IDToTitle[matches[ii]]) 
 			while True:
@@ -301,44 +333,44 @@ def PrintAllTasks():
 					print tab * (depth + 1), arrow, 'Notes: {0}'.format(task['notes'])
 
 def HandleInputArgs(argv):
-	checkEmpty = lambda s : s is '' or s.isspace()
-	splits = ''.join(argv[2:]).split(',')
-	c = argv[1]
-
-	if c is 'a':
-		print 'Adding task...'
-		task = { 'title' : splits[0] }
-		if not checkEmpty(splits[1]):
-			d = time.strptime(splits[1].lstrip(), "%m/%d/%y")
+	action = ''.join(argv['action'])
+	
+	if action is 'l':
+		PrintAllTasks()
+	elif action is 'a':
+		task = { 'title' : ''.join(argv['title']) }
+		if argv['date'] is not None:
+			dstr = ''.join(argv['date'])
+			d = time.strptime(dstr, "%m/%d/%y")
 			task['due'] = str(d.tm_year) + '-' + str(d.tm_mon) + '-' + \
 			str(d.tm_mday) + 'T12:00:00.000Z'
-		if not checkEmpty(splits[2]):
-			task['notes'] = splits[2].lstrip()
-		if not checkEmpty(splits[3]):
-			ret = Search(splits[3].lstrip())
+		if argv['note'] is not None:
+			task['notes'] = ''.join(argv['note'])
+		if argv['parent'] is not None:
+			ret = Search(''.join(argv['parent']))
 			if ret is None:
 				print 'No matches found for parent.'
 			else:
 				(listID, parentTask) = ret
 				task['parent'] = parentTask['id']
+				print 'Adding task...'
 				Add((listID, task))
 				return
+		print 'Adding task...'
 		Add((None, task))
-	elif c is 'l':
-		PrintAllTasks()
-	elif c is 'r':
-		print 'Removing task...'
-		ret = Search(splits[0])
+	elif action is 'r':
+		ret = Search(''.join(argv['title']))
 		if ret is None:
 			print 'No match found.'
 		else:
+			print 'Removing task...'
 			Remove(ret)
-	elif c is 't':
-		print 'Toggling task...'
-		ret = Search(splits[0])
+	elif action is 't':
+		ret = Search(''.join(argv['title']))
 		if ret is None:
 			print 'No match found.'
 		else:
+			print 'Toggling task...'
 			Toggle(ret)
 
 def HandleInput(c):
@@ -397,7 +429,7 @@ def HandleInput(c):
 		else:
 			Toggle(ret)
 
-def main(*argv):
+def main(argv):
 	print 'Retrieving task lists...'
 	GetData()
 
@@ -415,4 +447,4 @@ def main(*argv):
 	PutData()
 
 if __name__ == '__main__':
-	main(*(sys.argv))
+	main(sys.argv)
