@@ -19,9 +19,11 @@ import datetime as dt
 import time
 
 parser = None
+arguments = False
 
 # Parse arguments
 if len(sys.argv) > 1:
+	arguments = True
 	parser = ArgumentParser(description = "A Google Tasks Client.")
 	subparsers = parser.add_subparsers(dest = 'action')
 
@@ -54,9 +56,9 @@ if len(sys.argv) > 1:
 	parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
 	help = 'This non-optional argument specifies the name of the task.')
 	
-	progname = sys.argv[0]
+	#progname = sys.argv[0]
 	sys.argv = vars(parser.parse_args())
-	sys.argv['prog'] = progname
+	#sys.argv['prog'] = progname
 
 print 'Verifying authentication...'
 FLAGS = gflags.FLAGS
@@ -91,6 +93,42 @@ IDToTitle = {}
 UNCHANGED = 0
 UPDATED = 1
 DELETED = 2
+
+def Search(substr):
+	length = len(substr)
+	matches = {}
+	i = 1
+
+	for tasklistID in TaskLists:
+		for taskID in TaskLists[tasklistID]:
+			task = TaskLists[tasklistID][taskID]
+			if task['modified'] is DELETED:
+				continue
+			index = find(task['title'], substr)
+			if index != -1:
+				matches[i] = (tasklistID, task, index)
+				i += 1
+
+	# No matches
+	if i is 1:
+		return None
+	# Unique match
+	elif i is 2:
+		return matches[i-1][:2]
+	# Multiple matches
+	else:
+		# Print all matches
+		for ii in xrange(1, i):
+			(listID, task, index) = matches[ii]
+			title = task['title']
+			print '({0}): {1} : {2}{3}{4}'.format(ii, IDToTitle[listID], title[:index], \
+					bold(substr), title[index + length:]) 
+		while True:
+			choice = raw_input('Multiple matches found. Enter number of your choice: ')
+			try:
+				return matches[int(choice)][:2]
+			except:
+				print 'Invalid input. Please try again.'
 
 def Add(taskInfo):
 	matches = {}
@@ -144,42 +182,6 @@ def Add(taskInfo):
 	# Update records
 	IDToTitle[newTask['id']] = newTask['title']
 	newTask['modified'] = UNCHANGED
-
-def Search(substr):
-	length = len(substr)
-	matches = {}
-	i = 1
-
-	for tasklistID in TaskLists:
-		for taskID in TaskLists[tasklistID]:
-			task = TaskLists[tasklistID][taskID]
-			if task['modified'] is DELETED:
-				continue
-			index = find(task['title'], substr)
-			if index != -1:
-				matches[i] = (tasklistID, task, index)
-				i += 1
-
-	# No matches
-	if i is 1:
-		return None
-	# Unique match
-	elif i is 2:
-		return matches[i-1][:2]
-	# Multiple matches
-	else:
-		# Print all matches
-		for ii in xrange(1, i):
-			(listID, task, index) = matches[ii]
-			title = task['title']
-			print '({0}): {1} : {2}{3}{4}'.format(ii, IDToTitle[listID], title[:index], \
-					bold(substr), title[index + length:]) 
-		while True:
-			choice = raw_input('Multiple matches found. Enter number of your choice: ')
-			try:
-				return matches[int(choice)][:2]
-			except:
-				print 'Invalid input. Please try again.'
 
 def Remove(taskInfo):
 	global TaskLists
@@ -449,7 +451,7 @@ def main(argv):
 	print 'Retrieving task lists...'
 	GetData()
 
-	if len(argv) > 1:
+	if arguments:
 		HandleInputArgs(argv)
 	else:
 		PrintAllTasks()
