@@ -337,6 +337,7 @@ def HandleInputArgs(argv):
 	
 	if action is 'l':
 		PrintAllTasks()
+		return
 	elif action is 'a':
 		task = { 'title' : ''.join(argv['title']) }
 		if argv['date'] is not None:
@@ -373,10 +374,11 @@ def HandleInputArgs(argv):
 			print 'Toggling task...'
 			Toggle(ret)
 
+	PrintAllTasks()
+
 def HandleInput(c):
 	if c is 'a':
 		t = dt.date.today()
-		print 'Adding task...'
 
 		title = raw_input("Name of task: ")
 		while title is '':
@@ -409,8 +411,10 @@ def HandleInput(c):
 			else:
 				(listID, parentTask) = ret
 				task['parent'] = parentTask['id']
+				print 'Adding task...'
 				Add((listID, task))
 				return
+		print 'Adding task...'
 		Add((None, task))
 	elif c is 'l':
 		PrintAllTasks()
@@ -420,6 +424,7 @@ def HandleInput(c):
 		if ret is None:
 			print 'No match found.'
 		else:
+			print 'Removing task...'
 			Remove(ret)
 	elif c is 't':
 		substr = raw_input("Name of task: ")
@@ -427,6 +432,7 @@ def HandleInput(c):
 		if ret is None:
 			print 'No match found.'
 		else:
+			print 'Toggling task...'
 			Toggle(ret)
 
 def main(argv):
