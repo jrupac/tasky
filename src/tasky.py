@@ -5,7 +5,6 @@ from apiclient.oauth import OAuthCredentials
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.tools import run
-from fabulous.color import strike, bold
 from string import find
 from collections import OrderedDict
 from argparse import ArgumentParser
@@ -55,10 +54,8 @@ if len(sys.argv) > 1:
 	after execution')
 	parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
 	help = 'This non-optional argument specifies the name of the task.')
-	
-	#progname = sys.argv[0]
+
 	sys.argv = vars(parser.parse_args())
-	#sys.argv['prog'] = progname
 
 print 'Verifying authentication...'
 FLAGS = gflags.FLAGS
@@ -176,7 +173,6 @@ def Add(taskInfo):
 		TaskLists[matches[choice]] = newDict
 	else:
 		newTask = service.tasks().insert(tasklist = matches[choice], body = task).execute()
-		# Add new task to the end
 		TaskLists[matches[choice]][newTask['id']] = newTask
 
 	# Update records
@@ -286,6 +282,13 @@ def PutData():
 
 def PrintAllTasks():
 	arrow = u'\u2192'
+	BOLD = '\x1b[1m'
+	STRIKE = '\x1b[9m'
+	RESET = '\x1b[0m'
+
+	bold = lambda x : BOLD + x + RESET
+	strike = lambda x : STRIKE + x + RESET
+
 	tab = '  '
 	global TaskLists
 
