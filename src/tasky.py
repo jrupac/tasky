@@ -70,7 +70,7 @@ FLOW = OAuth2WebServerFlow(
 storage = Storage('tasks.dat')
 credentials = storage.get()
 
-if credentials is None or credentials.invalid == True:
+if credentials is None or credentials.invalid:
   credentials = run(FLOW, storage)
 
 http = httplib2.Http()
@@ -86,8 +86,10 @@ IDToTitle = {}
 UNCHANGED = 0
 UPDATED = 1
 DELETED = 2
+bold = lambda x : '\x1b[1m' + x + '\x1b[0m'
+strike = lambda x : '\x1b[9m' + x + '\x1b[0m'
 
-def Search(substr):
+def search_task(substr):
     length = len(substr)
     matches = {}
     i = 1
@@ -123,7 +125,7 @@ def Search(substr):
             except:
                 print 'Invalid input. Please try again.'
 
-def Add(taskInfo):
+def add_task(taskInfo):
     matches = {}
     i = 1
     choice = 1
@@ -175,7 +177,7 @@ def Add(taskInfo):
     IDToTitle[newTask['id']] = newTask['title']
     newTask['modified'] = UNCHANGED
 
-def Remove(taskInfo):
+def remove_task(taskInfo):
     global TaskLists
     (listID, task) = taskInfo
 
@@ -196,7 +198,7 @@ def Remove(taskInfo):
             if t['id'] in IDToTitle:
                 del IDToTitle[t['id']]
 
-def Toggle(taskInfo):
+def toggle_task(taskInfo):
     global TaskLists
     (listID, task) = taskInfo
 
@@ -204,7 +206,7 @@ def Toggle(taskInfo):
     if task['modified'] is DELETED:
         return
 
-    # Toggle the given task
+    # toggle_task the given task
     task['modified'] = UPDATED
     if task['status'] == 'needsAction':
         task['status'] = 'completed'
@@ -230,7 +232,7 @@ def Toggle(taskInfo):
             t['modified'] = UPDATED
             TaskLists[listID][t['id']] = t
 
-def GetData():
+def get_data():
     global TaskLists
     
     # Only retrieve data once per run
@@ -259,7 +261,7 @@ def GetData():
             task['modified'] = UNCHANGED
             TaskLists[tasklist['id']][task['id']] = task
 
-def PutData():
+def put_data():
     global TaskLists
 
     # Nothing to write home about
@@ -276,17 +278,10 @@ def PutData():
             elif task['modified'] is DELETED:
                 service.tasks().delete(tasklist = tasklistID, task = taskID).execute()
 
-def PrintAllTasks():
-    arrow = u'\u2192'
-    BOLD = '\x1b[1m'
-    STRIKE = '\x1b[9m'
-    RESET = '\x1b[0m'
-
-    bold = lambda x : BOLD + x + RESET
-    strike = lambda x : STRIKE + x + RESET
-
-    tab = '  '
+def print_all_tasks():
     global TaskLists
+    arrow = u'\u2192'
+    tab = '  '
 
     # No task lists
     if TaskLists is {}:
@@ -342,11 +337,11 @@ def PrintAllTasks():
                 else:
                     print tab * (depth + 1), arrow, 'Notes: {0}'.format(task['notes'])
 
-def HandleInputArgs(argv):
+def handle_input_args(argv):
     action = ''.join(argv['action'])
     
     if action is 'l':
-        PrintAllTasks()
+        print_all_tasks()
         return
     elif action is 'a':
         task = { 'title' : ''.join(argv['title']) }
@@ -358,36 +353,36 @@ def HandleInputArgs(argv):
         if argv['note'] is not None:
             task['notes'] = ''.join(argv['note'])
         if argv['parent'] is not None:
-            ret = Search(''.join(argv['parent']))
+            ret = search_task(''.join(argv['parent']))
             if ret is None:
                 print 'No matches found for parent.'
             else:
                 (listID, parentTask) = ret
                 task['parent'] = parentTask['id']
-                print 'Adding task...'
-                Add((listID, task))
+                print 'add_tasking task...'
+                add_task((listID, task))
                 return
-        print 'Adding task...'
-        Add((None, task))
+        print 'add_tasking task...'
+        add_task((None, task))
     elif action is 'r':
-        ret = Search(''.join(argv['title']))
+        ret = search_task(''.join(argv['title']))
         if ret is None:
             print 'No match found.'
         else:
             print 'Removing task...'
-            Remove(ret)
+            remove_task(ret)
     elif action is 't':
-        ret = Search(''.join(argv['title']))
+        ret = search_task(''.join(argv['title']))
         if ret is None:
             print 'No match found.'
         else:
             print 'Toggling task...'
-            Toggle(ret)
+            toggle_task(ret)
     
     if argv['list'] is True:
-        PrintAllTasks()
+        print_all_tasks()
 
-def HandleInput(c):
+def handle_input(c):
     if c is 'a':
         t = dt.date.today()
 
@@ -416,52 +411,52 @@ def HandleInput(c):
         
         parent = raw_input("Name of parent task: ")
         if parent is not '':
-            ret = Search(parent)
+            ret = search_task(parent)
             if ret is None:
                 print 'No matches found for parent.'
             else:
                 (listID, parentTask) = ret
                 task['parent'] = parentTask['id']
-                print 'Adding task...'
-                Add((listID, task))
+                print 'add_tasking task...'
+                add_task((listID, task))
                 return
-        print 'Adding task...'
-        Add((None, task))
+        print 'add_tasking task...'
+        add_task((None, task))
     elif c is 'l':
-        PrintAllTasks()
+        print_all_tasks()
     elif c is 'r':
         substr = raw_input("Name of task: ")
-        ret = Search(substr)
+        ret = search_task(substr)
         if ret is None:
             print 'No match found.'
         else:
             print 'Removing task...'
-            Remove(ret)
+            remove_task(ret)
     elif c is 't':
         substr = raw_input("Name of task: ")
-        ret = Search(substr)
+        ret = search_task(substr)
         if ret is None:
             print 'No match found.'
         else:
             print 'Toggling task...'
-            Toggle(ret)
+            toggle_task(ret)
 
 def main(argv):
     print 'Retrieving task lists...'
-    GetData()
+    get_data()
 
     if arguments:
-        HandleInputArgs(argv)
+        handle_input_args(argv)
     else:
-        PrintAllTasks()
+        print_all_tasks()
         while True:
             readIn = raw_input('[a]dd, [r]emove, [l]ist, [t]oggle, [q]uit: ')
             if readIn is '' or readIn is 'q':
                 break
-            HandleInput(readIn)
+            handle_input(readIn)
 
     print 'Sending changes...'
-    PutData()
+    put_data()
 
 if __name__ == '__main__':
     main(sys.argv)
