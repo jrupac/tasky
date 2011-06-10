@@ -1,1 +1,17 @@
-Requires Python 2.7 and the Google API client for Python
+DESCRIPTION
+===========
+
+  This is a desktop client for Google Tasks that runs in the command line. It
+  provides a fast way to interface with all task lists of a user and make 
+  changes and updates very quickly. This program has been designed to make as
+  few API calls as possible in order to optimize performance.
+ 
+DEPENDENCIES
+===========
+
+  Requires Python 2.7 and the Google API client for Python
+
+USAGE
+=====
+  
+  TODO
