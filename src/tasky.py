@@ -8,11 +8,14 @@ from oauth2client.tools import run
 from string import find
 from collections import OrderedDict
 from argparse import ArgumentParser
+from operator import itemgetter
 
 import httplib2
 import sys
 import datetime as dt
 import time
+import os
+import readline
 
 parser = None
 arguments = False
@@ -83,11 +86,39 @@ f.close()
 
 TaskLists = {}
 IDToTitle = {}
+TaskNames = []
 UNCHANGED = 0
 UPDATED = 1
 DELETED = 2
 bold = lambda x : '\x1b[1m' + x + '\x1b[0m'
 strike = lambda x : '\x1b[9m' + x + '\x1b[0m'
+
+class Completer():
+    def __init__(self):
+        self.matches = []
+        self.completions = []
+        self.DEBUG = False
+     
+    def complete_task_names(self, text, state):
+        self.completions = TaskNames
+        response = None
+       
+        if state is 0:
+            if text:
+                self.matches = [s for s in self.completions 
+                                if s and s.startswith(text)]
+            else:
+                self.matches = self.completions[:]
+
+        try:
+            response = self.matches[state]
+        except IndexError:
+            pass
+        
+        return response
+    
+    def complete_none(self, text, state):
+        return None
 
 def search_task(substr):
     length = len(substr)
@@ -175,6 +206,7 @@ def add_task(taskInfo):
 
     # Update records
     IDToTitle[newTask['id']] = newTask['title']
+    TaskNames.append(newTask['title'])
     newTask['modified'] = UNCHANGED
 
 def remove_task(taskInfo):
@@ -189,6 +221,7 @@ def remove_task(taskInfo):
     task['modified'] = DELETED
     # Tidy up
     del IDToTitle[task['id']]
+    TaskNames.remove(task['title'])
     
     # Also delete all children of deleted tasks
     for taskID in TaskLists[listID]:
@@ -197,6 +230,7 @@ def remove_task(taskInfo):
             t['modified'] = DELETED
             if t['id'] in IDToTitle:
                 del IDToTitle[t['id']]
+                TaskNames.remove(t['title'])
 
 def toggle_task(taskInfo):
     global TaskLists
@@ -256,6 +290,7 @@ def get_data():
             continue
         # Over all tasks in a given list
         for task in tasks['items']:
+            TaskNames.append(task['title'])
             IDToTitle[task['id']] = task['title']
             # Set everything to be initially unmodified
             task['modified'] = UNCHANGED
@@ -359,10 +394,10 @@ def handle_input_args(argv):
             else:
                 (listID, parentTask) = ret
                 task['parent'] = parentTask['id']
-                print 'add_tasking task...'
+                print 'Adding task...'
                 add_task((listID, task))
                 return
-        print 'add_tasking task...'
+        print 'Adding task...'
         add_task((None, task))
     elif action is 'r':
         ret = search_task(''.join(argv['title']))
@@ -383,6 +418,11 @@ def handle_input_args(argv):
         print_all_tasks()
 
 def handle_input(c):
+    completer = Completer()
+    c_name = completer.complete_task_names
+    c_none = completer.complete_none
+    readline.set_completer(c_none)
+
     if c is 'a':
         t = dt.date.today()
 
@@ -408,8 +448,10 @@ def handle_input(c):
         notes = raw_input("Notes: ")
         if notes is not '':
             task['notes'] = notes
-        
+    
+        readline.set_completer(c_name)
         parent = raw_input("Name of parent task: ")
+
         if parent is not '':
             ret = search_task(parent)
             if ret is None:
@@ -417,14 +459,15 @@ def handle_input(c):
             else:
                 (listID, parentTask) = ret
                 task['parent'] = parentTask['id']
-                print 'add_tasking task...'
+                print 'Adding task...'
                 add_task((listID, task))
                 return
-        print 'add_tasking task...'
+        print 'Adding task...'
         add_task((None, task))
     elif c is 'l':
         print_all_tasks()
     elif c is 'r':
+        readline.set_completer(c_name)
         substr = raw_input("Name of task: ")
         ret = search_task(substr)
         if ret is None:
@@ -433,6 +476,7 @@ def handle_input(c):
             print 'Removing task...'
             remove_task(ret)
     elif c is 't':
+        readline.set_completer(c_name)
         substr = raw_input("Name of task: ")
         ret = search_task(substr)
         if ret is None:
@@ -448,6 +492,8 @@ def main(argv):
     if arguments:
         handle_input_args(argv)
     else:
+        readline.parse_and_bind('tab: complete')
+        readline.set_completer_delims(readline.get_completer_delims()[1:])
         print_all_tasks()
         while True:
             readIn = raw_input('[a]dd, [r]emove, [l]ist, [t]oggle, [q]uit: ')
