@@ -16,6 +16,7 @@ import datetime as dt
 import time
 import os
 import readline
+import keys
 
 parser = None
 arguments = False
@@ -58,12 +59,12 @@ if len(sys.argv) > 1:
     sys.argv = vars(parser.parse_args())
 
 print 'Verifying authentication...'
-f = open('keys.txt', 'r')
+f = keys.Auth('keys.txt')
 
 # OAuth 2.0 Authentication
 FLOW = OAuth2WebServerFlow(
-    client_id = f.readline(),
-    client_secret = f.readline(),
+    client_id = f.getClientID(),
+    client_secret = f.getClientSecret(),
     scope = 'https://www.googleapis.com/auth/tasks',
     user_agent='Tasky/v1')
 
@@ -80,9 +81,8 @@ http = httplib2.Http()
 http = credentials.authorize(http)
 
 # The main Tasks API object
-service = build(serviceName='tasks', version='v1', http=http,
-       developerKey=f.readline())
-f.close()
+service = build(serviceName='tasks', version='v1', http=http, developerKey = f.getApiKey())
+
 
 TaskLists = {}
 IDToTitle = {}
