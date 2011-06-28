@@ -1,30 +1,28 @@
 class Auth():
 
     def __init__(self, key_file):
-
         try:
-           with open(key_file, 'r') as self.f:
-            self.ff = self.f.read().split("\n")
-        
-            self.clientid = self.ff[0]
-            self.clientsecret = self.ff[1]
-            self.apikey = self.ff[2]
-            
+            with open(key_file, 'r') as self.f:
+                self.clientid = self.f.readline()
+                self.clientsecret = self.f.readline()
+                self.apikey = self.f.readline()
         except IOError:
             self.clientid = raw_input("Enter your clientID: ")
             self.clientsecret = raw_input("Enter your client secret: ")
             self.apikey = raw_input("Enter your API key: ")
+            self.write_auth()
             
-    def writeAuth(self):
-        self.auth = open('keys.txt', 'w')
-        self.auth.write(clientid)
-        self.auth.write(clientsecret)
-        self.auth.write(apikey)
-        self.auth.close()
+    def write_auth(self):
+        with open('keys.txt', 'w') as self.auth:
+            self.auth.write(str(self.clientid) + '\n')
+            self.auth.write(str(self.clientsecret) + '\n')
+            self.auth.write(str(self.apikey) + '\n')
 
-    def getClientID(self):
+    def get_client_ID(self):
         return self.clientid
-    def getClientSecret(self):
+
+    def get_client_secret(self):
         return self.clientsecret
-    def getApiKey(self):
+
+    def get_API_key(self):
         return self.apikey
