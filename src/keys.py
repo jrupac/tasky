@@ -3,7 +3,7 @@ class Auth():
     def __init__(self, key_file):
 
         try:
-            self.f = open(key_file, 'r')
+           with open(key_file, 'r') as self.f:
             self.ff = self.f.read().split("\n")
         
             self.clientid = self.ff[0]
