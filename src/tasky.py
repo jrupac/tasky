@@ -88,7 +88,7 @@ TaskLists = {}
 IDToTitle = {}
 TaskNames = []
 UNCHANGED = 0
-UPDATED = 1
+TOGGLED = 1
 DELETED = 2
 bold = lambda x : '\x1b[1m' + x + '\x1b[0m'
 strike = lambda x : '\x1b[9m' + x + '\x1b[0m'
@@ -226,7 +226,8 @@ def remove_task(taskInfo):
     # Also delete all children of deleted tasks
     for taskID in TaskLists[listID]:
         t = TaskLists[listID][taskID]
-        if 'parent' in t and TaskLists[listID][t['parent']]['modified'] is DELETED:
+        if 'parent' in t and t['parent'] in TaskLists[listID] and \
+            TaskLists[listID][t['parent']]['modified'] is DELETED:
             t['modified'] = DELETED
             if t['id'] in IDToTitle:
                 del IDToTitle[t['id']]
@@ -241,7 +242,7 @@ def toggle_task(taskInfo):
         return
 
     # toggle_task the given task
-    task['modified'] = UPDATED
+    task['modified'] = TOGGLED
     if task['status'] == 'needsAction':
         task['status'] = 'completed'
     else:
@@ -263,12 +264,12 @@ def toggle_task(taskInfo):
             if t['status'] == 'needsAction' and 'completed' in t:
                 del t['completed']
             prevs.append(t['id'])
-            t['modified'] = UPDATED
+            t['modified'] = TOGGLED
             TaskLists[listID][t['id']] = t
 
 def get_data():
     global TaskLists
-    
+
     # Only retrieve data once per run
     if TaskLists != {}:
         return 
@@ -281,7 +282,10 @@ def get_data():
         return
 
     # Over all task lists
-    for tasklist in tasklists['items']:
+    for tasklist in tasklists['items'][0:1]:
+        # Handle repeats
+        if tasklist['title'] in IDToTitle:
+            continue
         IDToTitle[tasklist['id']] = tasklist['title']
         TaskLists[tasklist['id']] = OrderedDict()
         tasks = service.tasks().list(tasklist = tasklist['id']).execute()
@@ -308,8 +312,9 @@ def put_data():
             task = TaskLists[tasklistID][taskID]
             if task['modified'] is UNCHANGED:
                 continue
-            elif task['modified'] is UPDATED:
-                service.tasks().update(tasklist = tasklistID, task = taskID, body = task).execute()
+            elif task['modified'] is TOGGLED:
+                service.tasks().patch(tasklist = tasklistID, task = taskID, 
+                                      body = {'status': task['status']}).execute()
             elif task['modified'] is DELETED:
                 service.tasks().delete(tasklist = tasklistID, task = taskID).execute()
 
