@@ -18,72 +18,8 @@ import os
 import readline
 import keys
 
-parser = None
 arguments = False
-
-# Parse arguments
-if len(sys.argv) > 1:
-    arguments = True
-    parser = ArgumentParser(description = "A Google Tasks Client.")
-    subparsers = parser.add_subparsers(dest = 'action')
-
-    parser_a = subparsers.add_parser('a')
-    parser_a.add_argument('-l', '--list', action = 'store_true', \
-    default = False, help = 'If given, the updated lists will be printed\
-    after execution')
-    parser_a.add_argument('-t', '--title', nargs = 1, required = True, \
-    help = 'This non-optional argument specifies the name of the task.')
-    parser_a.add_argument('-d', '--date', nargs = 1, \
-    help = 'This optional argument must of the of the form MM/DD/YYYY.')
-    parser_a.add_argument('-n', '--note', nargs = 1, \
-    help = 'This optional argument can be any quotation-enclosed string.')
-    parser_a.add_argument('-p', '--parent', nargs = 1, \
-    help = 'This optional argument specifies the name of the task.')
-
-    parser_r = subparsers.add_parser('r')
-    parser_r.add_argument('-l', '--list', action = 'store_true', \
-    default = False, help = 'If given, the updated lists will be printed\
-    after execution')
-    parser_r.add_argument('-t', '--title', nargs = 1, required = True, \
-    help = 'This non-optional argument specifies the name of the task.')
-
-    parser_l = subparsers.add_parser('l')
-
-    parser_t = subparsers.add_parser('t')
-    parser_t.add_argument('-l', '--list', action = 'store_true', \
-    default = False, help = 'If given, the updated lists will be printed\
-    after execution')
-    parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
-    help = 'This non-optional argument specifies the name of the task.')
-
-    sys.argv = vars(parser.parse_args())
-
-print 'Verifying authentication...'
-f = keys.Auth('keys.txt')
-
-# OAuth 2.0 Authentication
-FLOW = OAuth2WebServerFlow(
-    client_id=f.get_client_ID(),
-    client_secret=f.get_client_secret(),
-    scope='https://www.googleapis.com/auth/tasks',
-    user_agent='Tasky/v1')
-
-# If the Credentials don't exist or are invalid, run through the native client
-# flow. The Storage object will ensure that if successful the good
-# Credentials will get written back to a file.
-storage = Storage('tasks.dat')
-credentials = storage.get()
-
-if credentials is None or credentials.invalid:
-  credentials = run(FLOW, storage)
-
-http = httplib2.Http()
-http = credentials.authorize(http)
-
-# The main Tasks API object
-service = build(serviceName='tasks', version='v1', http=http, 
-                developerKey=f.get_API_key())
-
+service = None
 TaskLists = {}
 IDToTitle = {}
 TaskNames = []
@@ -490,6 +426,75 @@ def handle_input(c):
             print 'Toggling task...'
             toggle_task(ret)
 
+def parse_arguments():
+	global arguments
+
+	# Parse arguments
+	if len(sys.argv) > 1:
+		arguments = True
+		parser = ArgumentParser(description = "A Google Tasks Client.")
+		subparsers = parser.add_subparsers(dest = 'action')
+
+		parser_a = subparsers.add_parser('a')
+		parser_a.add_argument('-l', '--list', action = 'store_true', \
+		default = False, help = 'If given, the updated lists will be printed\
+		after execution')
+		parser_a.add_argument('-t', '--title', nargs = 1, required = True, \
+		help = 'This non-optional argument specifies the name of the task.')
+		parser_a.add_argument('-d', '--date', nargs = 1, \
+		help = 'This optional argument must of the of the form MM/DD/YYYY.')
+		parser_a.add_argument('-n', '--note', nargs = 1, \
+		help = 'This optional argument can be any quotation-enclosed string.')
+		parser_a.add_argument('-p', '--parent', nargs = 1, \
+		help = 'This optional argument specifies the name of the task.')
+
+		parser_r = subparsers.add_parser('r')
+		parser_r.add_argument('-l', '--list', action = 'store_true', \
+		default = False, help = 'If given, the updated lists will be printed\
+		after execution')
+		parser_r.add_argument('-t', '--title', nargs = 1, required = True, \
+		help = 'This non-optional argument specifies the name of the task.')
+
+		parser_l = subparsers.add_parser('l')
+
+		parser_t = subparsers.add_parser('t')
+		parser_t.add_argument('-l', '--list', action = 'store_true', \
+		default = False, help = 'If given, the updated lists will be printed\
+		after execution')
+		parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
+		help = 'This non-optional argument specifies the name of the task.')
+
+		sys.argv = vars(parser.parse_args())
+
+def authenticate():
+	global service
+
+	print 'Verifying authentication...'
+	f = keys.Auth('keys.txt')
+
+	# OAuth 2.0 Authentication
+	FLOW = OAuth2WebServerFlow(
+		client_id=f.get_client_ID(),
+		client_secret=f.get_client_secret(),
+		scope='https://www.googleapis.com/auth/tasks',
+		user_agent='Tasky/v1')
+
+	# If the Credentials don't exist or are invalid, run through the native client
+	# flow. The Storage object will ensure that if successful the good
+	# Credentials will get written back to a file.
+	storage = Storage('tasks.dat')
+	credentials = storage.get()
+
+	if credentials is None or credentials.invalid:
+	  credentials = run(FLOW, storage)
+
+	http = httplib2.Http()
+	http = credentials.authorize(http)
+
+	# The main Tasks API object
+	service = build(serviceName='tasks', version='v1', http=http, 
+					developerKey=f.get_API_key())
+
 def main(argv):
     print 'Retrieving task lists...'
     get_data()
@@ -510,4 +515,6 @@ def main(argv):
     put_data()
 
 if __name__ == '__main__':
-    main(sys.argv)
+	parse_arguments()
+	authenticate()
+	main(sys.argv)
