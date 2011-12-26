@@ -1,184 +1,113 @@
 #!/usr/bin/env python
+"""
+A Google Tasks command line interface.
+Author: Ajay Roopakalu (https://github.com/jrupac/tasky)
+
+Fork: Conner McDaniel (https://github.com/connermcd/tasky)
+        - Website: connermcd.com
+        - Email: connermcd using gmail
+"""
+
+# TODO:
+#  * error catching
+#  * make code cleaner/better
 
 from apiclient.discovery import build
-from apiclient.oauth import OAuthCredentials
-from oauth2client.file import Storage
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.tools import run
-from string import find
-from collections import OrderedDict
 from argparse import ArgumentParser
-from operator import itemgetter
+from collections import OrderedDict
+from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.file import Storage
+from oauth2client.tools import run
 
-import httplib2
-import sys
 import datetime as dt
-import time
-import os
-import readline
+import httplib2
 import keys
+import os.path
+import shlex
+import sys
+import time
+# import json # TODO
 
-arguments = False
+tasky_dir = os.path.dirname(os.path.realpath(__file__))
 service = None
-TaskLists = {}
-IDToTitle = {}
-TaskNames = []
+TaskLists = OrderedDict()
+IDToTitle = OrderedDict()
 UNCHANGED = 0
-TOGGLED = 1
+MODIFIED = 1
 DELETED = 2
-bold = lambda x : '\x1b[1m' + x + '\x1b[0m'
-strike = lambda x : '\x1b[9m' + x + '\x1b[0m'
 
-class Completer():
-    def __init__(self):
-        self.matches = []
-        self.completions = []
-        self.DEBUG = False
-     
-    def complete_task_names(self, text, state):
-        self.completions = TaskNames
-        response = None
-       
-        if state is 0:
-            if text:
-                self.matches = [s for s in self.completions 
-                                if s and s.startswith(text)]
-            else:
-                self.matches = self.completions[:]
+def add_task(listIndex, task):
+    global TaskLists
 
-        try:
-            response = self.matches[state]
-        except IndexError:
-            pass
-        
-        return response
-    
-    def complete_none(self, text, state):
-        return None
-
-def search_task(substr):
-    length = len(substr)
-    matches = {}
-    i = 1
-
-    for tasklistID in TaskLists:
-        for taskID in TaskLists[tasklistID]:
-            task = TaskLists[tasklistID][taskID]
-            if task['modified'] is DELETED:
-                continue
-            index = task['title'].find(substr)
-            if index != -1:
-                matches[i] = (tasklistID, task, index)
-                i += 1
-
-    # No matches
-    if i is 1:
-        return None
-    # Unique match
-    elif i is 2:
-        return matches[i-1][:2]
-    # Multiple matches
-    else:
-        # Print all matches
-        for ii in xrange(1, i):
-            (listID, task, index) = matches[ii]
-            title = task['title']
-            print '({0}): {1} : {2}{3}{4}'.format(ii, IDToTitle[listID], title[:index], \
-                    bold(substr), title[index + length:]) 
-        while True:
-            choice = raw_input('Multiple matches found. Enter number of your choice: ')
-            try:
-                return matches[int(choice)][:2]
-            except:
-                print 'Invalid input. Please try again.'
-
-def add_task(taskInfo):
-    matches = {}
-    i = 1
-    choice = 1
-    (listID, task) = taskInfo
-    
-    if listID is not None:
-        matches[choice] = listID
-    else:
-        for tasklistID in TaskLists:
-            matches[i] = tasklistID
-            i += 1
-
-        # No task lists found - report error
-        if i is 1:
-            print 'No task lists found.'
-            return
-        
-        # In case of multiple lists, decide which one
-        if i > 2:
-            for ii in xrange(1, i):
-                print '({0}): {1}'.format(ii, IDToTitle[matches[ii]]) 
-            while True:
-                try:
-                    choice = int(raw_input('Multiple lists found. Enter number of your choice: '))
-                    # Check if input is a valid choice
-                    dic = TaskLists[matches[choice]]
-                    break
-                except:
-                    print 'Invalid input. Please try again.'
-
-    dic = TaskLists[matches[choice]]
-    newTask = None
-
+    tasklist = TaskLists[TaskLists.keys()[listIndex]]
     if 'parent' in task:
-        newTask = service.tasks().insert(tasklist = matches[choice], \
-                parent = task['parent'], body = task).execute()
+        parent = tasklist.keys()[task['parent']]
+        newTask = service.tasks().insert(tasklist = TaskLists.keys()[listIndex], \
+            parent = parent, body = task).execute()
         # Re-insert the new task in order
         newDict = OrderedDict()
-        for tt in dic:
-            newDict[tt] = TaskLists[matches[choice]][tt]
-            if tt is task['parent']:
+        for tt in tasklist:
+            newDict[tt] = tasklist[tt]
+            if tt is parent:
                 newDict[newTask['id']] = newTask
-        TaskLists[matches[choice]] = newDict
     else:
-        newTask = service.tasks().insert(tasklist = matches[choice], body = task).execute()
-        TaskLists[matches[choice]][newTask['id']] = newTask
+        newTask = service.tasks().insert(tasklist = TaskLists.keys()[listIndex], \
+            body = task).execute()
+        newDict = OrderedDict()
+        newDict[newTask['id']] = newTask
+        for tt in tasklist:
+            newDict[tt] = tasklist[tt]
 
     # Update records
+    TaskLists[TaskLists.keys()[listIndex]] = newDict
     IDToTitle[newTask['id']] = newTask['title']
-    TaskNames.append(newTask['title'])
     newTask['modified'] = UNCHANGED
 
-def remove_task(taskInfo):
-    global TaskLists
-    (listID, task) = taskInfo
+def move_task(listIndex, task, args):
+    tasklistIndex = TaskLists.keys()[listIndex]
+    tasklist = TaskLists[tasklistIndex]
+    after = parent = ''
+    if args['after'] is not None and args['after'] != -1\
+        and int(args['after'][0]) != -1:
+        after = tasklist.keys()[int(args['after'][0])]
+    if args['parent'] is not None:
+        parent = tasklist.keys()[int(args['parent'][0])]
+    elif 'parent' in task:
+        parent = task['parent']
+    newTask = service.tasks().move(tasklist = tasklistIndex, \
+            task = task['id'], parent = ''.join(parent), \
+            previous = ''.join(after), body = task)\
+            .execute()
+    # del TaskLists[tasklistIndex][task['id']]
+    # tasklist[newTask['id']] = newTask
+    # IDToTitle[newTask['id']] = newTask['title']
+    # newTask['modified'] = UNCHANGED
+
+def remove_task(listIndex, task):
+    tasklist = TaskLists[TaskLists.keys()[listIndex]]
 
     # If already deleted, do nothing
     if task['modified'] is DELETED:
         return
-
-    # Delete the given task
     task['modified'] = DELETED
-    # Tidy up
     del IDToTitle[task['id']]
-    TaskNames.remove(task['title'])
     
     # Also delete all children of deleted tasks
-    for taskID in TaskLists[listID]:
-        t = TaskLists[listID][taskID]
-        if 'parent' in t and t['parent'] in TaskLists[listID] and \
-            TaskLists[listID][t['parent']]['modified'] is DELETED:
+    for taskID in tasklist:
+        t = tasklist[taskID]
+        if 'parent' in t and t['parent'] in tasklist and \
+            tasklist[t['parent']]['modified'] is DELETED:
             t['modified'] = DELETED
             if t['id'] in IDToTitle:
                 del IDToTitle[t['id']]
-                TaskNames.remove(t['title'])
 
-def toggle_task(taskInfo):
-    global TaskLists
-    (listID, task) = taskInfo
+def toggle_task(listIndex, task):
+    tasklist = TaskLists[TaskLists.keys()[listIndex]]
 
-    # If already deleted, do nothing
     if task['modified'] is DELETED:
         return
+    task['modified'] = MODIFIED
 
-    # toggle_task the given task
-    task['modified'] = TOGGLED
     if task['status'] == 'needsAction':
         task['status'] = 'completed'
     else:
@@ -186,26 +115,22 @@ def toggle_task(taskInfo):
         if 'completed' in task:
             del task['completed']
 
-    # Write back changes locally
-    TaskLists[listID][task['id']] = task    
-    prevs = [task['id']]
-
-    # Also toggle all children who parents were toggled
-    for taskID in TaskLists[listID]:
-        t = TaskLists[listID][taskID]
+    # Also toggle all children whose parents were toggled
+    toggle_tree = [task['id']]
+    for taskID in tasklist:
+        t = tasklist[taskID]
         if t['status'] is DELETED:
             continue
-        if 'parent' in t and t['parent'] in prevs:
-            t['status'] = TaskLists[listID][t['parent']]['status']
+        if 'parent' in t and t['parent'] in toggle_tree:
+            t['status'] = tasklist[t['parent']]['status']
             if t['status'] == 'needsAction' and 'completed' in t:
                 del t['completed']
-            prevs.append(t['id'])
-            t['modified'] = TOGGLED
-            TaskLists[listID][t['id']] = t
+            toggle_tree.append(t['id'])
+            t['modified'] = MODIFIED
+            tasklist[t['id']] = t
 
 def get_data():
     global TaskLists
-
     # Only retrieve data once per run
     if TaskLists != {}:
         return 
@@ -218,7 +143,7 @@ def get_data():
         return
 
     # Over all task lists
-    for tasklist in tasklists['items'][0:1]:
+    for tasklist in tasklists['items']:
         # Handle repeats
         if tasklist['title'] in IDToTitle:
             continue
@@ -230,15 +155,12 @@ def get_data():
             continue
         # Over all tasks in a given list
         for task in tasks['items']:
-            TaskNames.append(task['title'])
             IDToTitle[task['id']] = task['title']
             # Set everything to be initially unmodified
             task['modified'] = UNCHANGED
             TaskLists[tasklist['id']][task['id']] = task
 
 def put_data():
-    global TaskLists
-
     # Nothing to write home about
     if TaskLists == {}:
         return
@@ -248,273 +170,289 @@ def put_data():
             task = TaskLists[tasklistID][taskID]
             if task['modified'] is UNCHANGED:
                 continue
-            elif task['modified'] is TOGGLED:
-                service.tasks().patch(tasklist = tasklistID, task = taskID, 
-                                      body = {'status': task['status']}).execute()
+            elif task['modified'] is MODIFIED:
+                service.tasks().update(tasklist = tasklistID, task = taskID, \
+                    body = task).execute()
             elif task['modified'] is DELETED:
-                service.tasks().delete(tasklist = tasklistID, task = taskID).execute()
+                service.tasks().delete(tasklist = tasklistID, task = taskID)\
+                    .execute()
 
-def print_all_tasks():
-    global TaskLists
-    arrow = u'\u2192'
+def print_all_tasks(tasklistID):
     tab = '  '
 
     # No task lists
-    if TaskLists is {}:
+    if TaskLists == {}:
         print 'Found no task lists.'
         return
 
-    numLists = len(TaskLists)
-    print 'Found {0} task list(s):'.format(numLists)
+    # print(json.dumps(TaskLists, indent=4)) TODO
 
-    for tasklistID in TaskLists:
-        # Use a dictionary to store the indent depth of each task
-        depthMap = { tasklistID : 0 }
-        depth = 1
+    # Use a dictionary to store the indent depth of each task
+    depthMap = { tasklistID : 0 }
+    depth = 1
 
-        # Print task name
-        print tab * depth, IDToTitle[tasklistID]
-        
-        # No tasks
-        if TaskLists[tasklistID] is {}:
+    # Print task name
+    if len(TaskLists[tasklistID]) == 0:
+        print IDToTitle[tasklistID], '(empty)'
+        sys.exit(False)
+    else:
+        print IDToTitle[tasklistID]
+
+    for taskID in TaskLists[tasklistID]:
+        task = TaskLists[tasklistID][taskID]
+        if task['modified'] is DELETED:
             continue
+        depth = 1
+        isCompleted = (task['status'] == 'completed')
+        
+        # Set the depth of the current task
+        if 'parent' in task and task['parent'] in depthMap:
+            depth = depthMap[task['parent']] + 1
+        depthMap[task['id']] = depth
 
-        for taskID in TaskLists[tasklistID]:
-            task = TaskLists[tasklistID][taskID]
-            if task['modified'] is DELETED:
-                continue
-            depth = 2
-            isCompleted = (task['status'] == 'completed')
-            
-            # Set the depth of the current task
-            if 'parent' in task and task['parent'] in depthMap:
-                depth = depthMap[task['parent']] + 1
-            depthMap[task['id']] = depth
+        # Print x in box if task has already been completed
+        if isCompleted:
+            print tab * depth, TaskLists[tasklistID].keys().index(taskID), \
+                '[x]', task['title'] #, task['position'] # TODO
+        else:
+            print tab * depth, TaskLists[tasklistID].keys().index(taskID), \
+                '[ ]', task['title'] #, task['position'] # TODO
 
-            # Print strike-through if task has already been completed
-            if isCompleted:
-                print tab * depth, u'\u2611', strike(bold(task['title']))
-            else:
-                print tab * depth, u'\u2610', bold(task['title'])
+        # Print due date if specified
+        if 'due' in task:
+            date = dt.datetime.strptime(task['due'], \
+                '%Y-%m-%dT%H:%M:%S.%fZ')
+            output = date.strftime('%a, %b %d, %Y')
+            print tab * (depth + 1), 'Due Date: {0}'.format(output)
 
-            # Print due date if specified
-            if 'due' in task:
-                date = dt.datetime.strptime(task['due'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                output = date.strftime('%a, %b %d, %Y')
-                if isCompleted:
-                    print tab * (depth + 1), arrow, strike('Due Date: {0}'.format(output))
-                else:
-                    print tab * (depth + 1), arrow, 'Due Date: {0}'.format(output)
+        # Print notes if specified
+        if 'notes' in task:
+            print tab * (depth + 1), 'Notes: {0}'\
+                .format(task['notes'])
 
-            # Print notes if specified
-            if 'notes' in task:
-                if isCompleted:
-                    print tab * (depth + 1), arrow, strike('Notes: {0}'.format(task['notes']))
-                else:
-                    print tab * (depth + 1), arrow, 'Notes: {0}'.format(task['notes'])
+def print_summary():
+    for tasklistID in TaskLists:
+        print TaskLists.keys().index(tasklistID), \
+              IDToTitle[tasklistID], '(', \
+              len(TaskLists[tasklistID]), ')'
 
-def handle_input_args(argv):
-    action = ''.join(argv['action'])
-    
-    if action is 'l':
-        print_all_tasks()
+def handle_input_args(args):
+    action = ''.join(args['action'])
+    args['list'] = int(args['list'])
+    tasklistID = TaskLists.keys()[args['list']]
+    tasklist = TaskLists[tasklistID]
+
+    if action is 'a':
+        for title in args['title']:
+            task = { 'title' : ''.join(title) }
+            if args['date'] is not None:
+                dstr = ''.join(args['date'])
+                d = time.strptime(dstr, "%m/%d/%y")
+                task['due'] = str(d.tm_year) + '-' + str(d.tm_mon) + '-' + \
+                    str(d.tm_mday) + 'T12:00:00.000Z'
+            if args['note'] is not None:
+                task['notes'] = ''.join(args['note'])
+            if args['parent'] is not None:
+                task['parent'] = int(args['parent'][0])
+            print 'Adding task...'
+            add_task(args['list'], task)
+    if action is 'd':
+        readIn = raw_input('This will delete the list "' + \
+            IDToTitle[tasklistID] + \
+            '" and all its contents permanently. Are you sure? (y/n) ')
+        if readIn is 'Y' or readIn is 'y':
+            service.tasklists().delete(tasklist = tasklistID).execute()
+        del TaskLists[tasklistID]
+        print_summary()
+        put_data()
+        sys.exit(True)
+    if action is 'n':
+        if args['rename'] is True:
+            print 'Renaming task list...'
+            tasklist = service.tasklists().get(tasklist = tasklistID)\
+                .execute()
+            tasklist['title'] = args['title'][0]
+            IDToTitle[tasklistID] = args['title'][0]
+            service.tasklists().update(tasklist = tasklistID, \
+                body = tasklist).execute()
+            time.sleep(3)
+        else:
+            print 'Creating new task list...'
+            newTaskList = service.tasklists().insert(\
+                body = { 'title': args['title'] }).execute()
+            IDToTitle[newTaskList['id']] = newTaskList['title']
+            TaskLists[newTaskList['id']] = OrderedDict()
+        print_summary()
+        put_data()
+        sys.exit(True)
+    elif tasklist == {}:
+        print IDToTitle[tasklistID], '(empty)'
         return
-    elif action is 'a':
-        task = { 'title' : ''.join(argv['title']) }
-        if argv['date'] is not None:
-            dstr = ''.join(argv['date'])
+    elif action is 'e':
+        print 'Editing task...'
+        task = tasklist[tasklist.keys()[int(args['index'][0])]]
+        if args['title'] is not None:
+            task['title'] = ''.join(args['title'])
+        if args['date'] is not None:
+            dstr = ''.join(args['date'])
             d = time.strptime(dstr, "%m/%d/%y")
             task['due'] = str(d.tm_year) + '-' + str(d.tm_mon) + '-' + \
-            str(d.tm_mday) + 'T12:00:00.000Z'
-        if argv['note'] is not None:
-            task['notes'] = ''.join(argv['note'])
-        if argv['parent'] is not None:
-            ret = search_task(''.join(argv['parent']))
-            if ret is None:
-                print 'No matches found for parent.'
-            else:
-                (listID, parentTask) = ret
-                task['parent'] = parentTask['id']
-                print 'Adding task...'
-                add_task((listID, task))
-                return
-        print 'Adding task...'
-        add_task((None, task))
+                str(d.tm_mday) + 'T12:00:00.000Z'
+        if args['note'] is not None:
+            task['notes'] = ''.join(args['note'])
+        if task['modified'] == DELETED:
+            return
+        task['modified'] = MODIFIED
+    elif action is 'm':
+        print 'Moving task...'
+        task = tasklist[tasklist.keys()[int(args['index'][0])]]
+        move_task(args['list'], task, args)
+        put_data()
+        sys.exit(True)
+    elif action is 'c':
+        if args['all'] is True:
+            print 'Removing all tasks...'
+            for taskID in tasklist:
+                remove_task(args['list'], tasklist[taskID])
+        else:
+            print 'Clearing completed tasks...'
+            service.tasks().clear(tasklist = tasklistID, body = '').execute()
+            for taskID in tasklist:
+                task = tasklist[taskID]
+                if task['status'] == 'completed':
+                    task['modified'] = DELETED
     elif action is 'r':
-        ret = search_task(''.join(argv['title']))
-        if ret is None:
-            print 'No match found.'
-        else:
-            print 'Removing task...'
-            remove_task(ret)
+        print 'Removing task...'
+        for index in args['index']:
+            index = int(index)
+            remove_task(args['list'], tasklist[tasklist.keys()[index]])
     elif action is 't':
-        ret = search_task(''.join(argv['title']))
-        if ret is None:
-            print 'No match found.'
-        else:
-            print 'Toggling task...'
-            toggle_task(ret)
-    
-    if argv['list'] is True:
-        print_all_tasks()
+        print 'Toggling task...'
+        for index in args['index']:
+            index = int(index)
+            toggle_task(args['list'], tasklist[tasklist.keys()[index]])
 
-def handle_input(c):
-    completer = Completer()
-    c_name = completer.complete_task_names
-    c_none = completer.complete_none
-    readline.set_completer(c_none)
+    if action is 'l' and args['all'] is True:
+        for tasklistID in TaskLists:
+            print_all_tasks(tasklistID)
+    elif action is 'l' and args['summary'] is True:
+        print_summary()
+    else:
+        print_all_tasks(tasklistID)
 
-    if c is 'a':
-        t = dt.date.today()
+def parse_arguments(args):
+    parser = ArgumentParser(description = """A Google Tasks Client.
+    Type tasky <argument> -h for more detailed information.""")
 
-        title = raw_input("Name of task: ")
-        while title is '':
-            print 'Please enter name for task.'
-            title = raw_input("Name of task: ")
-            
-        task = { 'title' : title }
-        month = raw_input("Month [MM]: ")
-        day = raw_input("Day [DD]): ")
-        year = raw_input("Year [YYYY]: ")
+    # Parse arguments
+    if len(args) > 1:
+        subparsers = parser.add_subparsers(dest = 'action')
+        parser.add_argument('-l', '--list', default = 0, \
+            help = 'Specifies task list (default: 0)')
 
-        if not (day is '' and month is '' and year is ''):
-            if day is '' or not day.isdigit():
-                day = t.day
-            if month is '' or not month.isdigit():
-                month = t.month
-            if year is '' or not year.isdigit():
-                year = t.year
-            task['due'] = str(year) + '-' + str(month) + '-' + str(day) + 'T12:00:00.000Z'
+        parser_a = subparsers.add_parser('a')
+        parser_a.add_argument('title', nargs = '*', \
+            help = 'The name of the task.')
+        parser_a.add_argument('-d', '--date', nargs = 1, \
+            help = 'A date in MM/DD/YYYY format.')
+        parser_a.add_argument('-n', '--note', nargs = 1, \
+            help = 'Any quotation-enclosed string.')
+        parser_a.add_argument('-p', '--parent', nargs = 1, \
+            help = 'The id of the parent task.')
 
-        notes = raw_input("Notes: ")
-        if notes is not '':
-            task['notes'] = notes
-    
-        readline.set_completer(c_name)
-        parent = raw_input("Name of parent task: ")
+        parser_e = subparsers.add_parser('e')
+        parser_e.add_argument('index', nargs = 1, \
+            help = 'Index of the task to edit.')
+        parser_e.add_argument('-t', '--title', nargs = 1, \
+            help = 'The new title after editing.')
+        parser_e.add_argument('-d', '--date', nargs = 1, \
+            help = 'A new date in MM/DD/YYYY format.')
+        parser_e.add_argument('-n', '--note', nargs = 1, \
+            help = 'The new note after editing.')
 
-        if parent is not '':
-            ret = search_task(parent)
-            if ret is None:
-                print 'No matches found for parent.'
-            else:
-                (listID, parentTask) = ret
-                task['parent'] = parentTask['id']
-                print 'Adding task...'
-                add_task((listID, task))
-                return
-        print 'Adding task...'
-        add_task((None, task))
-    elif c is 'l':
-        print_all_tasks()
-    elif c is 'r':
-        readline.set_completer(c_name)
-        substr = raw_input("Name of task: ")
-        ret = search_task(substr)
-        if ret is None:
-            print 'No match found.'
-        else:
-            print 'Removing task...'
-            remove_task(ret)
-    elif c is 't':
-        readline.set_completer(c_name)
-        substr = raw_input("Name of task: ")
-        ret = search_task(substr)
-        if ret is None:
-            print 'No match found.'
-        else:
-            print 'Toggling task...'
-            toggle_task(ret)
+        parser_m = subparsers.add_parser('m')
+        parser_m.add_argument('index', nargs = 1, \
+            help = 'Index of the task to move.')
+        parser_m.add_argument('-a', '--after', nargs = 1, default = -1, \
+            help = 'Move the task after this index. (default: -1)')
+        parser_m.add_argument('-p', '--parent', nargs = 1, \
+            help = 'Make the task a child of this index.')
 
-def parse_arguments():
-	global arguments
+        parser_c = subparsers.add_parser('c')
+        parser_c.add_argument('-a', '--all', action='store_true', \
+            help = 'Remove all tasks, completed or not.')
 
-	# Parse arguments
-	if len(sys.argv) > 1:
-		arguments = True
-		parser = ArgumentParser(description = "A Google Tasks Client.")
-		subparsers = parser.add_subparsers(dest = 'action')
+        subparsers.add_parser('d')
 
-		parser_a = subparsers.add_parser('a')
-		parser_a.add_argument('-l', '--list', action = 'store_true', \
-		default = False, help = 'If given, the updated lists will be printed\
-		after execution')
-		parser_a.add_argument('-t', '--title', nargs = 1, required = True, \
-		help = 'This non-optional argument specifies the name of the task.')
-		parser_a.add_argument('-d', '--date', nargs = 1, \
-		help = 'This optional argument must of the of the form MM/DD/YYYY.')
-		parser_a.add_argument('-n', '--note', nargs = 1, \
-		help = 'This optional argument can be any quotation-enclosed string.')
-		parser_a.add_argument('-p', '--parent', nargs = 1, \
-		help = 'This optional argument specifies the name of the task.')
+        parser_n = subparsers.add_parser('n')
+        parser_n.add_argument('title', nargs='*', \
+            help = 'The name of the new task list.')
+        parser_n.add_argument('-r', '--rename', action='store_true', \
+            help = 'Set if renaming an already existing task list.')
 
-		parser_r = subparsers.add_parser('r')
-		parser_r.add_argument('-l', '--list', action = 'store_true', \
-		default = False, help = 'If given, the updated lists will be printed\
-		after execution')
-		parser_r.add_argument('-t', '--title', nargs = 1, required = True, \
-		help = 'This non-optional argument specifies the name of the task.')
+        parser_l = subparsers.add_parser('l')
+        parser_l.add_argument('-a', '--all', action='store_true', \
+            help = 'Print all tasks in all task lists.')
+        parser_l.add_argument('-s', '--summary', action='store_true', \
+            help = 'Print a summary of available task lists.')
 
-		parser_l = subparsers.add_parser('l')
+        parser_r = subparsers.add_parser('r')
+        parser_r.add_argument('index', nargs = '*', \
+            help = 'Index of the task to remove.')
 
-		parser_t = subparsers.add_parser('t')
-		parser_t.add_argument('-l', '--list', action = 'store_true', \
-		default = False, help = 'If given, the updated lists will be printed\
-		after execution')
-		parser_t.add_argument('-t', '--title', nargs = 1, required = True, \
-		help = 'This non-optional argument specifies the name of the task.')
-
-		sys.argv = vars(parser.parse_args())
+        parser_t = subparsers.add_parser('t')
+        parser_t.add_argument('index', nargs = '*', \
+            help = 'Index of the task to toggle.')
+    sys.argv = args
+    return vars(parser.parse_args())
 
 def authenticate():
-	global service
+    global service
+    f = keys.Auth(tasky_dir + '/keys.txt')
 
-	print 'Verifying authentication...'
-	f = keys.Auth('keys.txt')
+    # OAuth 2.0 Authentication
+    FLOW = OAuth2WebServerFlow(
+        client_id=f.get_client_ID(),
+        client_secret=f.get_client_secret(),
+        scope='https://www.googleapis.com/auth/tasks',
+        user_agent='Tasky/v1')
 
-	# OAuth 2.0 Authentication
-	FLOW = OAuth2WebServerFlow(
-		client_id=f.get_client_ID(),
-		client_secret=f.get_client_secret(),
-		scope='https://www.googleapis.com/auth/tasks',
-		user_agent='Tasky/v1')
+    # If credentials don't exist or are invalid, run through the native client
+    # flow. The Storage object will ensure that if successful the good
+    # Credentials will get written back to a file.
+    storage = Storage(tasky_dir + '/tasks.dat')
+    credentials = storage.get()
 
-	# If the Credentials don't exist or are invalid, run through the native client
-	# flow. The Storage object will ensure that if successful the good
-	# Credentials will get written back to a file.
-	storage = Storage('tasks.dat')
-	credentials = storage.get()
+    if credentials is None or credentials.invalid:
+        credentials = run(FLOW, storage)
 
-	if credentials is None or credentials.invalid:
-	  credentials = run(FLOW, storage)
+    http = httplib2.Http()
+    http = credentials.authorize(http)
 
-	http = httplib2.Http()
-	http = credentials.authorize(http)
+    # The main Tasks API object
+    service = build(serviceName='tasks', version='v1', http=http, 
+        developerKey=f.get_API_key())
 
-	# The main Tasks API object
-	service = build(serviceName='tasks', version='v1', http=http, 
-					developerKey=f.get_API_key())
-
-def main(argv):
-    print 'Retrieving task lists...'
+def main(args):
     get_data()
 
-    if arguments:
-        handle_input_args(argv)
+    if len(args) > 1:
+        handle_input_args(args)
     else:
-        readline.parse_and_bind('tab: complete')
-        readline.set_completer_delims(readline.get_completer_delims()[1:])
-        print_all_tasks()
         while True:
-            readIn = raw_input('[a]dd, [r]emove, [l]ist, [t]oggle, [q]uit: ')
+            readIn = raw_input(\
+            "[a]dd, [c]lear, [d]elete, [e]dit, [r]emove task, [l]ist, \
+            [m]ove, [n]ew list/re[n]ame, [t]oggle, [q]uit: ")
             if readIn is '' or readIn is 'q':
                 break
-            handle_input(readIn)
+            args = shlex.split(readIn)
+            args[:0] = '/'
+            args = parse_arguments(args)
+            handle_input_args(args)
 
-    print 'Sending changes...'
     put_data()
+    sys.exit(True)
 
 if __name__ == '__main__':
-	parse_arguments()
-	authenticate()
-	main(sys.argv)
+    authenticate()
+    main(parse_arguments(sys.argv))
