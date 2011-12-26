@@ -63,7 +63,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
    * Deletes a task list.
 
 ### Adding a task (a):
-   * tasky a [--help/-h] [--parent/-p <int>] [--date/-d <MM/DD/YYYY>] [--note/-n "<string>"] title\*
+   * tasky a [--help/-h] [--parent/-p int] [--date/-d "MM/DD/YYYY"] [--note/-n "string"] title\*
    * NOTE: flags must be before the task's title this means that multiple tasks must share the same flags
 
 >
