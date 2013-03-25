@@ -91,7 +91,7 @@ def remove_task(listIndex, task):
         return
     task['modified'] = DELETED
     del IDToTitle[task['id']]
-    
+
     # Also delete all children of deleted tasks
     for taskID in tasklist:
         t = tasklist[taskID]
@@ -133,11 +133,11 @@ def get_data():
     global TaskLists
     # Only retrieve data once per run
     if TaskLists != {}:
-        return 
+        return
 
     # Fetch task lists
     tasklists = service.tasklists().list().execute()
-    
+
     # No task lists
     if 'items' not in tasklists:
         return
@@ -204,7 +204,7 @@ def print_all_tasks(tasklistID):
             continue
         depth = 1
         isCompleted = (task['status'] == 'completed')
-        
+
         # Set the depth of the current task
         if 'parent' in task and task['parent'] in depthMap:
             depth = depthMap[task['parent']] + 1
@@ -316,7 +316,7 @@ def handle_input_args(args):
                 remove_task(args['list'], tasklist[taskID])
         else:
             print 'Clearing completed tasks...'
-            service.tasks().clear(tasklist = tasklistID, body = '').execute()
+            service.tasks().clear(tasklist = tasklistID).execute()
             for taskID in tasklist:
                 task = tasklist[taskID]
                 if task['status'] == 'completed':
@@ -430,7 +430,7 @@ def authenticate():
     http = credentials.authorize(http)
 
     # The main Tasks API object
-    service = build(serviceName='tasks', version='v1', http=http, 
+    service = build(serviceName='tasks', version='v1', http=http,
         developerKey=f.get_API_key())
 
 def main(args):
