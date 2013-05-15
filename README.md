@@ -15,6 +15,9 @@ and the [Google API client for Python](http://code.google.com/p/google-api-pytho
 **NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
 register your project with Google. The details of this process are outlined on this [page](https://developers.google.com/google-apps/tasks/firstapp).
 
+**NOTE**: The provided `keys.py` module is used to create a `keys.txt` file that persists your API credentials
+on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
+
 USAGE
 =====
   
