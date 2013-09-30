@@ -21,7 +21,6 @@ from oauth2client.tools import run
 
 import datetime as dt
 import httplib2
-import keys
 import os
 import shlex
 import sys
@@ -406,9 +405,39 @@ def parse_arguments(args):
     sys.argv = args
     return vars(parser.parse_args())
 
+class Auth():
+    def __init__(self, key_file):
+        try:
+            with open(key_file, 'r') as self.f:
+                self.clientid = self.f.readline()
+                self.clientsecret = self.f.readline()
+                self.apikey = self.f.readline()
+        except IOError:
+            self.clientid = raw_input("Enter your clientID: ")
+            self.clientsecret = raw_input("Enter your client secret: ")
+            self.apikey = raw_input("Enter your API key: ")
+            self.write_auth()
+
+    def write_auth(self):
+        if not os.path.exists(tasky_dir):
+            os.makedirs(tasky_dir)
+        with open(tasky_dir + 'keys.txt', 'w') as self.auth:
+            self.auth.write(str(self.clientid) + '\n')
+            self.auth.write(str(self.clientsecret) + '\n')
+            self.auth.write(str(self.apikey) + '\n')
+
+    def get_client_ID(self):
+        return self.clientid
+
+    def get_client_secret(self):
+        return self.clientsecret
+
+    def get_API_key(self):
+        return self.apikey
+
 def authenticate():
     global service
-    f = keys.Auth(tasky_dir + '/keys.txt')
+    f = Auth(tasky_dir + '/keys.txt')
 
     # OAuth 2.0 Authentication
     FLOW = OAuth2WebServerFlow(
