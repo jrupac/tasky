@@ -22,13 +22,13 @@ from oauth2client.tools import run
 import datetime as dt
 import httplib2
 import keys
-import os.path
+import os
 import shlex
 import sys
 import time
 # import json # TODO
 
-tasky_dir = os.path.dirname(os.path.realpath(__file__))
+tasky_dir = os.environ['HOME'] + '/.tasky'
 service = None
 TaskLists = OrderedDict()
 IDToTitle = OrderedDict()

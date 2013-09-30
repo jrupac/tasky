@@ -1,3 +1,6 @@
+import os
+
+
 class Auth():
 
     def __init__(self, key_file):
@@ -13,7 +16,7 @@ class Auth():
             self.write_auth()
             
     def write_auth(self):
-        with open('keys.txt', 'w') as self.auth:
+        with open(os.environ['HOME'] + '/.tasky/keys.txt', 'w') as self.auth:
             self.auth.write(str(self.clientid) + '\n')
             self.auth.write(str(self.clientsecret) + '\n')
             self.auth.write(str(self.apikey) + '\n')
