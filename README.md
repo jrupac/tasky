@@ -1,94 +1,150 @@
-DESCRIPTION
-===========
+# Tasky.txt
 
-This is a desktop client for Google Tasks that runs in the command line. It
-provides a fast way to interface with all task lists of a user and make 
-changes and updates very quickly. This program has been designed to make as
-few API calls as possible in order to optimize performance.
- 
-DEPENDENCIES
-===========
+## Description
+[Tasky][tasky] is a command-line interface to Google's Tasks API. It is meant to parallel the functionality of [Todo.txt][todotxt].
 
-Requires Python 2.7, the GNU Readline library (`sudo easy_install readline`), 
-and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
+## Dependencies
+Requires Python 2.7 and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
 
 **NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
 register your project with Google. The details of this process are outlined on this [page](https://developers.google.com/google-apps/tasks/firstapp).
 
-**NOTE**: The provided `keys.py` module is used to create a `keys.txt` file that persists your API credentials
+**NOTE**: The script will create a `~/.tasky/keys.txt` file that persists your API credentials
 on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
 
-USAGE
-=====
-  
-Quick Mode
-----------
+## Installation
+Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend something similar; however, for clarity's sake I will refer to the script as 'tasky' for this documentation.
 
-This mode is primarily to make very quick changes to the task list in a non-interactive fashion.
+      chmod +x tasky.py
+      ln -s /dir/for/tasky.py /folder/in/$PATH/tasky
 
-### Common Operations ###
+## Usage Examples
 
-#### Adding a task (`a`):
+### List (l):
+   * Lists the tasks of the specified list, which defaults to 0.
+   * The -s flag will print a summary of your task lists.
+   * The -l flag is **universal** and comes _before_ arguments.
+   * The -a flag will print all lists and their tasks.
 
-    $ python tasky.py a --title "Title of task" --date "5/14/11" --note "This is a note."
-     --parent "Parent task name"
+>
+      tasky l
+      # jrupac's list
+      #    0 [ ] Buy birthday card
+      #    1 [x] TPS Reports
+      #    2 [ ] Groceries
+      #      3 [ ] Eggs
+      #      4 [ ] Bread
+      #      5 [ ] Milk
 
-OR
+>
+      tasky l -s
+      # 0 jrupac's list ( 7 )
+      # 1 Movies ( 70 )
+      # 2 Testing ( 0 )
+      # 3 Mobile ( 0 )
 
-    $ python tasky.py a -t "Title of task" -d "5/14/11" -n "This is a note." -p "Parent task name"
-            
-All of the above fields are optional except for the title and can appear in any order.
+>
+      tasky -l 2 l
+      # Testing (empty)
 
-#### Removing a task and its children (`r`):
 
-    $ python tasky.py r --title "Title of task"
+>
+      tasky l -a
+      # -- long list of all tasks in all lists --
 
-OR
+### New List (n):
+   * Creates a new task list or (-r) renames an old one.
 
-    $ python tasky.py r -t "Title of task"
-            
-#### Toggling a task and its children (`t`):
+>
+      tasky n "My New List"
+      tasky -l 2 n -r "New Name"
+      # Renaming task list...
+      # 0 jrupac's list ( 7 )
+      # 1 Movies ( 70 )
+      # 2 New Name ( 0 )
+      # 3 Mobile ( 0 )
+      # 4 My New List ( 0 )
 
-    $ python tasky.py t --title "Title of task"
+### Delete List (d):
+   * Deletes a task list.
 
-OR
+### Adding a task (a):
+   * tasky a [--help/-h] [--parent/-p int] [--date/-d "MM/DD/YYYY"] [--note/-n "string"] title\*
+   * NOTE: flags must be before the task's title this means that multiple tasks must share the same flags
 
-    $ python tasky.py t -t "Title of task"
+>
+      tasky a Groceries
+      tasky a "TPS Reports" "Buy birthday card"
+      tasky a -p 2 Eggs Bread Milk "Pasta sauce"
+      tasky a -d "5/14/11" -n "This is a note." "Name of task."
 
-#### Listing all tasks (`l`):
+### Toggling/removing a task and its children (r):
+   * tasky t index\*
+   * tasky r index\*
 
-    $ python tasky.py l
+>
+      tasky t 2 6 7
+      tasky r 6 7
+      # Removing task...
+      # jrupac's list
+      #    0 [ ] Buy birthday card
+      #    1 [ ] TPS Reports
+      #    2 [x] Groceries
+      #      3 [x] Pasta sauce
+      #      4 [x] Milk
+      #      5 [x] Bread
 
-**Note:** The task list can be printed after the execution of the operation by 
-adding a (`--list`) or (`-l`) flag to the command.
-    
-Normal Mode
------------
+### Clearing tasks (c):
+   * tasky c
+      - clears completed tasks for specified list
+   * tasky c -a
+      - clears all tasks for specified list, completed or not
 
-This mode is intended for making interactive changes to the task list (less to remember too!).
+### Editing tasks (e):
+   * Edits the title, date, or note of a task
 
-Invoke Tasky by just doing:
+>
+      tasky e 0 -t "Buy Dad's birthday card" -n "Get him a gift card?"
+      # Editing task...
+      # jrupac's list
+      #    0 [ ] Buy Dad's birthday card
+      #      Notes: Get him a gift card?
+      #    1 [ ] TPS Reports
+      #    2 [x] Groceries
+      #      3 [x] Pasta sauce
+      #      4 [x] Milk
+      #      5 [x] Bread
 
-    $ python tasky.py
-    
-Then follow the on-screen instructions to interact with the list in some way.     
+### Moving tasks (m):
+   * Move tasks to a different parent or position.
+   * The -a/--after tag moves the task after the given index.
+   * The -p/--parent task allows you to give a task a new parent.
+   * NOTE: The immediate feedback display is still under development...
 
-### Tab Completion ###
+>
+      tasky m 2 -a 0
+      # jrupac's list
+      #    0 [ ] Buy Dad's birthday card
+      #      Notes: Get him a gift card?
+      #    1 [x] Groceries
+      #      2 [x] Pasta sauce
+      #      3 [x] Milk
+      #      4 [x] Bread
+      #    5 [ ] TPS Reports
 
-Tab-completion is supported, so you can type the beginning of an existing task name. For example:
+>
+      tasky m 3 -p 5
+      # jrupac's list
+      #    0 [ ] Buy Dad's birthday card
+      #      Notes: Get him a gift card?
+      #    1 [x] Groceries
+      #      2 [x] Pasta sauce
+      #      3 [x] Bread
+      #    4 [ ] TPS Reports
+      #      5 [x] Milk
 
-     Name of task: Lea<TAB>
+## Development/License
+The script currently does very little error catching and still has a few bugs. Please feel free to list bugs or feature requests on this github page in the issues section. This script was originally created by [Ajay Roopakalu](https://github.com/jrupac/tasky), and is under the [GNU GPL license](http://www.gnu.org/licenses/gpl.txt).
 
-If there is more than one match, all matches will be listed on the second tab:
-
-     Name of task: Lea<TAB><TAB>
-     Learn Java  Learn C++
-
-Otherwise, the task name will be filled in.
-
-### Partial String Searching ###
-
-In addition, Tasky also support partial string searching, so you 
-can type just any consecutive portion of any task name when searching for it. 
-All of the matched results will be displayed and you can specify the number
-for the result you desire.
+   [tasky]: https://github.com/jrupac/tasky
+   [todotxt]: http://todotxt.com/
