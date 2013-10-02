@@ -1,16 +1,15 @@
 # Tasky.txt
 
 ## Description
-This is a fork of [Tasky][tasky] which is meant to streamline its ease of use in order to parallel the functionality of [Todo.txt][todotxt]. For example, it uses task and list index numbers as in [Todo.txt][todotxt] instead of title matching as in [Tasky][tasky]. It removes the readline dependency from [Tasky][tasky]. The output is less verbose and the command syntax is slightly changed to facilitate faster typing.
+[Tasky][tasky] is a command-line interface to Google's Tasks API. It is meant to parallel the functionality of [Todo.txt][todotxt].
 
 ## Dependencies
-Requires Python 2.7, the GNU Readline library (`sudo easy_install readline`),
-and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
+Requires Python 2.7 and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
 
 **NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
 register your project with Google. The details of this process are outlined on this [page](https://developers.google.com/google-apps/tasks/firstapp).
 
-**NOTE**: The provided `keys.py` module is used to create a `keys.txt` file that persists your API credentials
+**NOTE**: The script will create a `~/.tasky/keys.txt` file that persists your API credentials
 on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
 
 ## Installation
@@ -29,7 +28,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 >
       tasky l
-      # connermcd's list
+      # jrupac's list
       #    0 [ ] Buy birthday card
       #    1 [x] TPS Reports
       #    2 [ ] Groceries
@@ -39,7 +38,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 >
       tasky l -s
-      # 0 connermcd's list ( 7 )
+      # 0 jrupac's list ( 7 )
       # 1 Movies ( 70 )
       # 2 Testing ( 0 )
       # 3 Mobile ( 0 )
@@ -60,7 +59,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
       tasky n "My New List"
       tasky -l 2 n -r "New Name"
       # Renaming task list...
-      # 0 connermcd's list ( 7 )
+      # 0 jrupac's list ( 7 )
       # 1 Movies ( 70 )
       # 2 New Name ( 0 )
       # 3 Mobile ( 0 )
@@ -87,7 +86,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
       tasky t 2 6 7
       tasky r 6 7
       # Removing task...
-      # connermcd's list
+      # jrupac's list
       #    0 [ ] Buy birthday card
       #    1 [ ] TPS Reports
       #    2 [x] Groceries
@@ -107,7 +106,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 >
       tasky e 0 -t "Buy Dad's birthday card" -n "Get him a gift card?"
       # Editing task...
-      # connermcd's list
+      # jrupac's list
       #    0 [ ] Buy Dad's birthday card
       #      Notes: Get him a gift card?
       #    1 [ ] TPS Reports
@@ -124,7 +123,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 >
       tasky m 2 -a 0
-      # connermcd's list
+      # jrupac's list
       #    0 [ ] Buy Dad's birthday card
       #      Notes: Get him a gift card?
       #    1 [x] Groceries
@@ -135,7 +134,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 >
       tasky m 3 -p 5
-      # connermcd's list
+      # jrupac's list
       #    0 [ ] Buy Dad's birthday card
       #      Notes: Get him a gift card?
       #    1 [x] Groceries
@@ -145,7 +144,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
       #      5 [x] Milk
 
 ## Development/License
-The script currently does very little error catching and still has a few bugs. I plan to iron these out and clean the code. Please feel free to list bugs or feature requests on this github page in the issues section. This script is a fork of the original script created by [Ajay Roopakalu](https://github.com/jrupac/tasky), and has recently been placed under the [GNU GPL license](http://www.gnu.org/licenses/gpl.txt).
+The script currently does very little error catching and still has a few bugs. Please feel free to list bugs or feature requests on this github page in the issues section. This script was originally created by [Ajay Roopakalu](https://github.com/jrupac/tasky), and is under the [GNU GPL license](http://www.gnu.org/licenses/gpl.txt).
 
    [tasky]: https://github.com/jrupac/tasky
    [todotxt]: http://todotxt.com/
