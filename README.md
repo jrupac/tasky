@@ -4,7 +4,14 @@
 This is a fork of [Tasky][tasky] which is meant to streamline its ease of use in order to parallel the functionality of [Todo.txt][todotxt]. For example, it uses task and list index numbers as in [Todo.txt][todotxt] instead of title matching as in [Tasky][tasky]. It removes the readline dependency from [Tasky][tasky]. The output is less verbose and the command syntax is slightly changed to facilitate faster typing.
 
 ## Dependencies
-Requires Python 2.7 and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
+Requires Python 2.7, the GNU Readline library (`sudo easy_install readline`),
+and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
+
+**NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
+register your project with Google. The details of this process are outlined on this [page](https://developers.google.com/google-apps/tasks/firstapp).
+
+**NOTE**: The provided `keys.py` module is used to create a `keys.txt` file that persists your API credentials
+on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
 
 ## Installation
 Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend something similar; however, for clarity's sake I will refer to the script as 'tasky' for this documentation.
