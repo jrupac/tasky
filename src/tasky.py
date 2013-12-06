@@ -421,7 +421,7 @@ class Auth():
     def write_auth(self):
         if not os.path.exists(tasky_dir):
             os.makedirs(tasky_dir)
-        with open(tasky_dir + 'keys.txt', 'w') as self.auth:
+        with open(tasky_dir + '/keys.txt', 'w') as self.auth:
             self.auth.write(str(self.clientid) + '\n')
             self.auth.write(str(self.clientsecret) + '\n')
             self.auth.write(str(self.apikey) + '\n')
