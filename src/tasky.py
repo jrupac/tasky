@@ -235,10 +235,12 @@ def print_summary():
               IDToTitle[tasklistID], '(', \
               len(TaskLists[tasklistID]), ')'
 
-def handle_input_args(args):
+def handle_input_args(args, atasklistID=0):
     action = ''.join(args['action'])
     args['list'] = int(args['list'])
-    tasklistID = TaskLists.keys()[args['list']]
+    if atasklistID == 0:
+        atasklistID = args['list']
+    tasklistID = TaskLists.keys()[atasklistID]
     tasklist = TaskLists[tasklistID]
 
     if action is 'a':
@@ -254,7 +256,7 @@ def handle_input_args(args):
             if args['parent'] is not None:
                 task['parent'] = int(args['parent'][0])
             print 'Adding task...'
-            add_task(args['list'], task)
+            add_task(atasklistID, task)
     if action is 'd':
         readIn = raw_input('This will delete the list "' + \
             IDToTitle[tasklistID] + \
@@ -305,14 +307,14 @@ def handle_input_args(args):
     elif action is 'm':
         print 'Moving task...'
         task = tasklist[tasklist.keys()[int(args['index'][0])]]
-        move_task(args['list'], task, args)
+        move_task(atasklistID, task, args)
         put_data()
         sys.exit(True)
     elif action is 'c':
         if args['all'] is True:
             print 'Removing all tasks...'
             for taskID in tasklist:
-                remove_task(args['list'], tasklist[taskID])
+                remove_task(atasklistID, tasklist[taskID])
         else:
             print 'Clearing completed tasks...'
             service.tasks().clear(tasklist = tasklistID).execute()
@@ -324,18 +326,20 @@ def handle_input_args(args):
         print 'Removing task...'
         for index in args['index']:
             index = int(index)
-            remove_task(args['list'], tasklist[tasklist.keys()[index]])
+            remove_task(atasklistID, tasklist[tasklist.keys()[index]])
     elif action is 't':
         print 'Toggling task...'
         for index in args['index']:
             index = int(index)
-            toggle_task(args['list'], tasklist[tasklist.keys()[index]])
+            toggle_task(atasklistID, tasklist[tasklist.keys()[index]])
 
     if action is 'l' and args['all'] is True:
         for tasklistID in TaskLists:
             print_all_tasks(tasklistID)
     elif action is 'l' and args['summary'] is True:
         print_summary()
+    elif action is 'i':
+        readLoop(args, atasklistID)
     else:
         print_all_tasks(tasklistID)
 
@@ -382,6 +386,7 @@ def parse_arguments(args):
             help = 'Remove all tasks, completed or not.')
 
         subparsers.add_parser('d')
+        subparsers.add_parser('i')
 
         parser_n = subparsers.add_parser('n')
         parser_n.add_argument('title', nargs='*', \
@@ -462,23 +467,26 @@ def authenticate():
     service = build(serviceName='tasks', version='v1', http=http,
         developerKey=f.get_API_key())
 
+def readLoop(args, tasklistID=0):
+     while True:
+        readIn = raw_input(\
+        "[a]dd, [c]lear, [d]elete, [e]dit, [r]emove task, [l]ist, \
+        [m]ove, [n]ew list/re[n]ame, [t]oggle, [q]uit: ")
+        if readIn is '' or readIn is 'q':
+            break
+        args = shlex.split(readIn)
+        args[:0] = '/'
+        args = parse_arguments(args)
+        handle_input_args(args, tasklistID)
+
+
 def main(args):
     get_data()
 
     if len(args) > 1:
         handle_input_args(args)
     else:
-        while True:
-            readIn = raw_input(\
-            "[a]dd, [c]lear, [d]elete, [e]dit, [r]emove task, [l]ist, \
-            [m]ove, [n]ew list/re[n]ame, [t]oggle, [q]uit: ")
-            if readIn is '' or readIn is 'q':
-                break
-            args = shlex.split(readIn)
-            args[:0] = '/'
-            args = parse_arguments(args)
-            handle_input_args(args)
-
+        readLoop(args)
     put_data()
     sys.exit(True)
 
