@@ -28,6 +28,7 @@ import time
 # import json # TODO
 
 tasky_dir = os.environ['HOME'] + '/.tasky'
+KEYS_FILE = os.path.join(tasky_dir, 'keys.txt')
 service = None
 TaskLists = OrderedDict()
 IDToTitle = OrderedDict()
@@ -426,7 +427,7 @@ class Auth():
     def write_auth(self):
         if not os.path.exists(tasky_dir):
             os.makedirs(tasky_dir)
-        with open(tasky_dir + '/keys.txt', 'w') as self.auth:
+        with open(KEYS_FILE, 'w') as self.auth:
             self.auth.write(str(self.clientid) + '\n')
             self.auth.write(str(self.clientsecret) + '\n')
             self.auth.write(str(self.apikey) + '\n')
@@ -442,7 +443,7 @@ class Auth():
 
 def authenticate():
     global service
-    f = Auth(tasky_dir + '/keys.txt')
+    f = Auth(KEYS_FILE)
 
     # OAuth 2.0 Authentication
     FLOW = OAuth2WebServerFlow(
