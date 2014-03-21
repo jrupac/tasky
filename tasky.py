@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 A Google Tasks command line interface.
 Author: Ajay Roopakalu (https://github.com/jrupac/tasky)
@@ -27,7 +27,7 @@ import sys
 import time
 # import json # TODO
 
-tasky_dir = os.environ['HOME'] + '/.tasky'
+tasky_dir = os.path.join(os.environ['HOME'], '.tasky')
 KEYS_FILE = os.path.join(tasky_dir, 'keys.txt')
 service = None
 TaskLists = OrderedDict()
@@ -455,7 +455,7 @@ def authenticate():
     # If credentials don't exist or are invalid, run through the native client
     # flow. The Storage object will ensure that if successful the good
     # Credentials will get written back to a file.
-    storage = Storage(tasky_dir + '/tasks.dat')
+    storage = Storage(os.path.join(tasky_dir, 'tasks.dat'))
     credentials = storage.get()
 
     if credentials is None or credentials.invalid:

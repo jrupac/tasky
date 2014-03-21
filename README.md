@@ -5,17 +5,28 @@
 
 ## Dependencies
 Requires Python 2.7 and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
+The needed packages are installable from PyPi and are in the `requirements.txt` file. Use `pip install -r requirements.txt` to install them.
 
 **NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
-register your project with Google. The details of this process are outlined on this [page](https://developers.google.com/google-apps/tasks/firstapp).
+register your project with Google. Instructions are provided below.
 
 **NOTE**: The script will create a `~/.tasky/keys.txt` file that persists your API credentials
 on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
 
 ## Installation
+
+### Connecting to the Tasks API
+1. Go to https://cloud.google.com/console/project
+2. Create a project.
+3. Enable the Tasks API (disable everything else).
+4. Go to the credentials screen.
+5. Click the "Create new Key" button under the Public API access section.
+6. Generate a browser key and leave the URL restriction blank.
+7. Run tasky and enter the needed information.
+
+### Local
 Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend something similar; however, for clarity's sake I will refer to the script as 'tasky' for this documentation.
 
-      chmod +x tasky.py
       ln -s /dir/for/tasky.py /folder/in/$PATH/tasky
 
 ## Usage Examples
