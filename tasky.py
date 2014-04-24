@@ -41,6 +41,7 @@ UNCHANGED = 0
 MODIFIED = 1
 DELETED = 2
 
+
 def add_task(listIndex, task):
     global TaskLists
 
@@ -48,10 +49,10 @@ def add_task(listIndex, task):
     if 'parent' in task:
         parent = tasklist.keys()[task['parent']]
         newTask = service.tasks().insert(
-                tasklist = TaskLists.keys()[listIndex],
-                parent = parent,
-                body = task,
-                ).execute()
+            tasklist=TaskLists.keys()[listIndex],
+            parent=parent,
+            body=task
+            ).execute()
         # Re-insert the new task in order
         newDict = OrderedDict()
         for tt in tasklist:
@@ -60,9 +61,9 @@ def add_task(listIndex, task):
                 newDict[newTask['id']] = newTask
     else:
         newTask = service.tasks().insert(
-                tasklist = TaskLists.keys()[listIndex],
-                body = task,
-                ).execute()
+            tasklist=TaskLists.keys()[listIndex],
+            body=task
+            ).execute()
         newDict = OrderedDict()
         newDict[newTask['id']] = newTask
         for tt in tasklist:
@@ -73,14 +74,15 @@ def add_task(listIndex, task):
     IDToTitle[newTask['id']] = newTask['title']
     newTask['modified'] = UNCHANGED
 
+
 def move_task(listIndex, task, args):
     tasklistIndex = TaskLists.keys()[listIndex]
     tasklist = TaskLists[tasklistIndex]
     after = None
     parent = None
 
-    if (args['after'] is not None and 
-            args['after'] != -1 and 
+    if (args['after'] is not None and
+            args['after'] != -1 and
             int(args['after'][0]) != -1):
         after = tasklist.keys()[int(args['after'][0])]
 
@@ -90,15 +92,16 @@ def move_task(listIndex, task, args):
         parent = task['parent']
 
     newTask = service.tasks().move(
-            tasklist = tasklistIndex,
-            task = task['id'], parent = ''.join(parent),
-            previous = ''.join(after),
-            body = task,
-            ).execute()
+        tasklist=tasklistIndex,
+        task=task['id'], parent=''.join(parent),
+        previous=''.join(after),
+        body=task
+        ).execute()
     # del TaskLists[tasklistIndex][task['id']]
     # tasklist[newTask['id']] = newTask
     # IDToTitle[newTask['id']] = newTask['title']
     # newTask['modified'] = UNCHANGED
+
 
 def remove_task(listIndex, task):
     tasklist = TaskLists[TaskLists.keys()[listIndex]]
@@ -112,12 +115,13 @@ def remove_task(listIndex, task):
     # Also delete all children of deleted tasks
     for taskID in tasklist:
         t = tasklist[taskID]
-        if ('parent' in t and 
-                t['parent'] in tasklist and 
+        if ('parent' in t and
+                t['parent'] in tasklist and
                 tasklist[t['parent']]['modified'] is DELETED):
             t['modified'] = DELETED
             if t['id'] in IDToTitle:
                 del IDToTitle[t['id']]
+
 
 def toggle_task(listIndex, task):
     tasklist = TaskLists[TaskLists.keys()[listIndex]]
@@ -147,6 +151,7 @@ def toggle_task(listIndex, task):
             t['modified'] = MODIFIED
             tasklist[t['id']] = t
 
+
 def get_data():
     global TaskLists
     # Only retrieve data once per run
@@ -167,7 +172,7 @@ def get_data():
             continue
         IDToTitle[tasklist['id']] = tasklist['title']
         TaskLists[tasklist['id']] = OrderedDict()
-        tasks = service.tasks().list(tasklist = tasklist['id']).execute()
+        tasks = service.tasks().list(tasklist=tasklist['id']).execute()
         # No task in current list
         if 'items' not in tasks:
             continue
@@ -177,6 +182,7 @@ def get_data():
             # Set everything to be initially unmodified
             task['modified'] = UNCHANGED
             TaskLists[tasklist['id']][task['id']] = task
+
 
 def put_data():
     # Nothing to write home about
@@ -190,15 +196,16 @@ def put_data():
                 continue
             elif task['modified'] is MODIFIED:
                 service.tasks().update(
-                        tasklist = tasklistID,
-                        task = taskID,
-                        body = task,
-                        ).execute()
+                    tasklist=tasklistID,
+                    task=taskID,
+                    body=task
+                    ).execute()
             elif task['modified'] is DELETED:
                 service.tasks().delete(
-                        tasklist = tasklistID,
-                        task = taskID,
-                        ).execute()
+                    tasklist=tasklistID,
+                    task=taskID
+                    ).execute()
+
 
 def print_all_tasks(tasklistID):
     tab = '  '
@@ -211,7 +218,7 @@ def print_all_tasks(tasklistID):
     # print(json.dumps(TaskLists, indent=4)) TODO
 
     # Use a dictionary to store the indent depth of each task
-    depthMap = { tasklistID : 0 }
+    depthMap = {tasklistID: 0}
     depth = 1
 
     # Print task name
@@ -236,35 +243,37 @@ def print_all_tasks(tasklistID):
         # Print x in box if task has already been completed
         if isCompleted:
             print(tab * depth,
-                    TaskLists[tasklistID].keys().index(taskID),
-                    '[x]',
-                    task['title'])
-                    #task['position'], # TODO
+                  TaskLists[tasklistID].keys().index(taskID),
+                  '[x]',
+                  task['title'])
+                # task['position'], # TODO
         else:
             print(tab * depth,
-                    TaskLists[tasklistID].keys().index(taskID),
-                    '[ ]',
-                    task['title'])
-                    #task['position'] # TODO
+                  TaskLists[tasklistID].keys().index(taskID),
+                  '[ ]',
+                  task['title'])
+                # task['position'] # TODO
 
         # Print due date if specified
         if 'due' in task:
             date = dt.datetime.strptime(task['due'],
-                    '%Y-%m-%dT%H:%M:%S.%fZ')
+                                        '%Y-%m-%dT%H:%M:%S.%fZ')
             output = date.strftime('%a, %b %d, %Y')
             print(tab * (depth + 1),
-                    'Due Date: {0}'.format(output))
+                  'Due Date: {0}'.format(output))
 
         # Print notes if specified
         if 'notes' in task:
             print(tab * (depth + 1),
-                    'Notes: {0}'.format(task['notes']))
+                  'Notes: {0}'.format(task['notes']))
+
 
 def print_summary():
     for tasklistID in TaskLists:
         print(TaskLists.keys().index(tasklistID),
-                IDToTitle[tasklistID],
-                '(', len(TaskLists[tasklistID]), ')')
+              IDToTitle[tasklistID],
+              '(', len(TaskLists[tasklistID]), ')')
+
 
 def handle_input_args(args, atasklistID=0):
     action = ''.join(args['action'])
@@ -276,15 +285,14 @@ def handle_input_args(args, atasklistID=0):
 
     if action is 'a':
         for title in args['title']:
-            task = { 'title' : ''.join(title) }
+            task = {'title': ''.join(title)}
             if args['date'] is not None:
                 dstr = ''.join(args['date'])
                 d = time.strptime(dstr, "%m/%d/%y")
-                task['due'] = (
-                        str(d.tm_year) + '-' + 
-                        str(d.tm_mon) + '-' + 
-                        str(d.tm_mday) + 
-                        'T12:00:00.000Z')
+                task['due'] = (str(d.tm_year) + '-' +
+                               str(d.tm_mon) + '-' +
+                               str(d.tm_mday) +
+                               'T12:00:00.000Z')
             if args['note'] is not None:
                 task['notes'] = ''.join(args['note'])
             if args['parent'] is not None:
@@ -292,11 +300,11 @@ def handle_input_args(args, atasklistID=0):
             print('Adding task...')
             add_task(atasklistID, task)
     if action is 'd':
-        readIn = raw_input('This will delete the list "' + 
-                IDToTitle[tasklistID] + 
-                '" and all its contents permanently. Are you sure? (y/n) ')
+        readIn = raw_input('This will delete the list "' +
+                           IDToTitle[tasklistID] +
+                           '" and all its contents permanently. Are you sure? (y/n) ')
         if readIn is 'Y' or readIn is 'y':
-            service.tasklists().delete(tasklist = tasklistID).execute()
+            service.tasklists().delete(tasklist=tasklistID).execute()
         del TaskLists[tasklistID]
         print_summary()
         put_data()
@@ -304,21 +312,19 @@ def handle_input_args(args, atasklistID=0):
     if action is 'n':
         if args['rename'] is True:
             print('Renaming task list...')
-            tasklist = service.tasklists().get(
-                    tasklist = tasklistID,
-                    ).execute()
+            tasklist = service.tasklists().get(tasklist=tasklistID).execute()
             tasklist['title'] = args['title'][0]
             IDToTitle[tasklistID] = args['title'][0]
             service.tasklists().update(
-                    tasklist = tasklistID,
-                    body = tasklist,
-                    ).execute()
+                tasklist=tasklistID,
+                body=tasklist
+                ).execute()
             time.sleep(3)
         else:
             print('Creating new task list...')
             newTaskList = service.tasklists().insert(
-                    body = {'title': args['title']},
-                    ).execute()
+                body={'title': args['title']}
+                ).execute()
             IDToTitle[newTaskList['id']] = newTaskList['title']
             TaskLists[newTaskList['id']] = OrderedDict()
         print_summary()
@@ -336,9 +342,9 @@ def handle_input_args(args, atasklistID=0):
             dstr = ''.join(args['date'])
             d = time.strptime(dstr, "%m/%d/%y")
             task['due'] = (str(d.tm_year) + '-' +
-                    str(d.tm_mon) + '-' + 
-                    str(d.tm_mday) + 
-                    'T12:00:00.000Z')
+                           str(d.tm_mon) + '-' +
+                           str(d.tm_mday) +
+                           'T12:00:00.000Z')
         if args['note'] is not None:
             task['notes'] = ''.join(args['note'])
         if task['modified'] == DELETED:
@@ -357,7 +363,7 @@ def handle_input_args(args, atasklistID=0):
                 remove_task(atasklistID, tasklist[taskID])
         else:
             print('Clearing completed tasks...')
-            service.tasks().clear(tasklist = tasklistID).execute()
+            service.tasks().clear(tasklist=tasklistID).execute()
             for taskID in tasklist:
                 task = tasklist[taskID]
                 if task['status'] == 'completed':
@@ -383,78 +389,81 @@ def handle_input_args(args, atasklistID=0):
     else:
         print_all_tasks(tasklistID)
 
+
 def parse_arguments(args):
-    parser = ArgumentParser(description = """A Google Tasks Client.
+    parser = ArgumentParser(description="""A Google Tasks Client.
     Type tasky <argument> -h for more detailed information.""")
 
     # Parse arguments
     if len(args) > 1:
-        subparsers = parser.add_subparsers(dest = 'action')
+        subparsers = parser.add_subparsers(dest='action')
         parser.add_argument('-l', '--list',
-                default = 0,
-                help = 'Specifies task list (default: 0)')
+                            default=0,
+                            help='Specifies task list (default: 0)')
 
         parser_a = subparsers.add_parser('a')
-        parser_a.add_argument('title', nargs = '*',
-                help = 'The name of the task.')
-        parser_a.add_argument('-d', '--date', nargs = 1,
-                help = 'A date in MM/DD/YYYY format.')
-        parser_a.add_argument('-n', '--note', nargs = 1,
-                help = 'Any quotation-enclosed string.')
-        parser_a.add_argument('-p', '--parent', nargs = 1,
-                help = 'The id of the parent task.')
+        parser_a.add_argument('title', nargs='*',
+                              help='The name of the task.')
+        parser_a.add_argument('-d', '--date', nargs=1,
+                              help='A date in MM/DD/YYYY format.')
+        parser_a.add_argument('-n', '--note', nargs=1,
+                              help='Any quotation-enclosed string.')
+        parser_a.add_argument('-p', '--parent', nargs=1,
+                              help='The id of the parent task.')
 
         parser_e = subparsers.add_parser('e')
-        parser_e.add_argument('index', nargs = 1,
-                help = 'Index of the task to edit.')
-        parser_e.add_argument('-t', '--title', nargs = 1,
-                help = 'The new title after editing.')
-        parser_e.add_argument('-d', '--date', nargs = 1,
-                help = 'A new date in MM/DD/YYYY format.')
-        parser_e.add_argument('-n', '--note', nargs = 1,
-                help = 'The new note after editing.')
+        parser_e.add_argument('index', nargs=1,
+                              help='Index of the task to edit.')
+        parser_e.add_argument('-t', '--title', nargs=1,
+                              help='The new title after editing.')
+        parser_e.add_argument('-d', '--date', nargs=1,
+                              help='A new date in MM/DD/YYYY format.')
+        parser_e.add_argument('-n', '--note', nargs=1,
+                              help='The new note after editing.')
 
         parser_m = subparsers.add_parser('m')
-        parser_m.add_argument('index', nargs = 1,
-                help = 'Index of the task to move.')
-        parser_m.add_argument('-a', '--after', 
-                nargs = 1, default = -1,
-                help = 'Move the task after this index. (default: -1)')
+        parser_m.add_argument('index', nargs=1,
+                              help='Index of the task to move.')
+        parser_m.add_argument('-a', '--after',
+                              nargs=1, default=-1,
+                              help='Move the task after this index. (default: -1)')
         parser_m.add_argument('-p', '--parent',
-                nargs = 1,
-                help = 'Make the task a child of this index.')
+                              nargs=1,
+                              help='Make the task a child of this index.')
 
         parser_c = subparsers.add_parser('c')
         parser_c.add_argument('-a', '--all',
-                action='store_true',
-                help = 'Remove all tasks, completed or not.')
+                              action='store_true',
+                              help='Remove all tasks, completed or not.')
 
         subparsers.add_parser('d')
         subparsers.add_parser('i')
 
         parser_n = subparsers.add_parser('n')
         parser_n.add_argument('title', nargs='*',
-                help = 'The name of the new task list.')
+                              help='The name of the new task list.')
         parser_n.add_argument('-r', '--rename', action='store_true',
-                help = 'Set if renaming an already existing task list.')
+                              help='Set if renaming an already existing task list.')
 
         parser_l = subparsers.add_parser('l')
         parser_l.add_argument('-a', '--all', action='store_true',
-                help = 'Print all tasks in all task lists.')
+                              help='Print all tasks in all task lists.')
         parser_l.add_argument('-s', '--summary', action='store_true',
-                help = 'Print a summary of available task lists.')
+                              help='Print a summary of available task lists.')
 
         parser_r = subparsers.add_parser('r')
-        parser_r.add_argument('index', nargs = '*',
-                help = 'Index of the task to remove.')
+        parser_r.add_argument('index', nargs='*',
+                              help='Index of the task to remove.')
 
         parser_t = subparsers.add_parser('t')
-        parser_t.add_argument('index', nargs = '*',
-                help = 'Index of the task to toggle.')
+        parser_t.add_argument('index', nargs='*',
+                              help='Index of the task to toggle.')
     sys.argv = args
     return vars(parser.parse_args())
 
+
 class Auth():
+
     def __init__(self, key_file):
         try:
             with open(key_file, 'r') as self.f:
@@ -484,6 +493,7 @@ class Auth():
     def get_API_key(self):
         return self.apikey
 
+
 def authenticate():
     global service
     f = Auth(KEYS_FILE)
@@ -509,10 +519,11 @@ def authenticate():
 
     # The main Tasks API object
     service = build(serviceName='tasks', version='v1', http=http,
-        developerKey=f.get_API_key())
+                    developerKey=f.get_API_key())
+
 
 def readLoop(args, tasklistID=0):
-     while True:
+    while True:
         readIn = raw_input(USAGE)
         if readIn is '' or readIn is 'q':
             break
