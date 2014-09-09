@@ -22,7 +22,10 @@ on disk. Take care not to commit this data into any public repositories. You are
 4. Go to the credentials screen.
 5. Click the "Create new Key" button under the Public API access section.
 6. Generate a browser key and leave the URL restriction blank.
-7. Run tasky and enter the needed information.
+7. Click the "Generate new Client ID" under Oauth.
+8. Select "Installed application -> Other"
+9. Make sure you've chosen product name and email adress under the "Consent screen".
+10. Run ./tasky.py and enter the clientID, client secret and API key.
 
 ### Local
 Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend something similar; however, for clarity's sake I will refer to the script as 'tasky' for this documentation.
