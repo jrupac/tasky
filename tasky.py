@@ -469,9 +469,9 @@ class Auth():
     def __init__(self, key_file):
         try:
             with open(key_file, 'r') as self.f:
-                self.clientid = self.f.readline()
-                self.clientsecret = self.f.readline()
-                self.apikey = self.f.readline()
+                self.clientid = self.f.readline().rstrip()
+                self.clientsecret = self.f.readline().rstrip()
+                self.apikey = self.f.readline().rstrip()
         except IOError:
             self.clientid = raw_input("Enter your clientID: ")
             self.clientsecret = raw_input("Enter your client secret: ")
