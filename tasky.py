@@ -322,6 +322,8 @@ def handle_input_args(args, atasklistID=0):
             time.sleep(3)
         else:
             print('Creating new task list...')
+            if not args['title']:
+              print('WARNING: Creating task list with no title')
             newTaskList = service.tasklists().insert(
                 body={'title': args['title']}
                 ).execute()
