@@ -288,7 +288,7 @@ def handle_input_args(args, atasklistID=0):
             task = {'title': ''.join(title)}
             if args['date'] is not None:
                 dstr = ''.join(args['date'])
-                d = time.strptime(dstr, "%m/%d/%y")
+                d = time.strptime(dstr, "%m/%d/%Y")
                 task['due'] = (str(d.tm_year) + '-' +
                                str(d.tm_mon) + '-' +
                                str(d.tm_mday) +
@@ -340,7 +340,7 @@ def handle_input_args(args, atasklistID=0):
             task['title'] = ''.join(args['title'])
         if args['date'] is not None:
             dstr = ''.join(args['date'])
-            d = time.strptime(dstr, "%m/%d/%y")
+            d = time.strptime(dstr, "%m/%d/%Y")
             task['due'] = (str(d.tm_year) + '-' +
                            str(d.tm_mon) + '-' +
                            str(d.tm_mday) +
