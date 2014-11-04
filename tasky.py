@@ -223,10 +223,10 @@ def print_all_tasks(tasklistID):
 
     # Print task name
     if len(TaskLists[tasklistID]) == 0:
-        print(IDToTitle[tasklistID], '(empty)')
-        sys.exit(False)
+        print(textcolor.HEADER + IDToTitle[tasklistID] +  textcolor.ENDC, '(empty)')
+        #sys.exit(False)
     else:
-        print(IDToTitle[tasklistID])
+        print(textcolor.HEADER + IDToTitle[tasklistID] + textcolor.ENDC)
 
     for taskID in TaskLists[tasklistID]:
         task = TaskLists[tasklistID][taskID]
@@ -248,10 +248,10 @@ def print_all_tasks(tasklistID):
                   task['title'])
                 # task['position'], # TODO
         else:
-            print(tab * depth,
+            print(textcolor.TITLE + tab * depth,
                   TaskLists[tasklistID].keys().index(taskID),
                   '[ ]',
-                  task['title'])
+                  task['title'] + textcolor.ENDC)
                 # task['position'] # TODO
 
         # Print due date if specified
@@ -259,13 +259,13 @@ def print_all_tasks(tasklistID):
             date = dt.datetime.strptime(task['due'],
                                         '%Y-%m-%dT%H:%M:%S.%fZ')
             output = date.strftime('%a, %b %d, %Y')
-            print(tab * (depth + 1),
-                  'Due Date: {0}'.format(output))
+            print(tab * (depth + 1), textcolor.DATE +
+                  'Due Date: {0}'.format(output) + textcolor.ENDC)
 
         # Print notes if specified
         if 'notes' in task:
-            print(tab * (depth + 1),
-                  'Notes: {0}'.format(task['notes']))
+            print(tab * (depth + 1), textcolor.NOTES +
+                  'Notes: {0}'.format(task['notes']) + textcolor.ENDC)
 
 
 def print_summary():
@@ -322,8 +322,6 @@ def handle_input_args(args, atasklistID=0):
             time.sleep(3)
         else:
             print('Creating new task list...')
-            if not args['title']:
-              print('WARNING: Creating task list with no title')
             newTaskList = service.tasklists().insert(
                 body={'title': args['title']}
                 ).execute()
@@ -332,9 +330,9 @@ def handle_input_args(args, atasklistID=0):
         print_summary()
         put_data()
         sys.exit(True)
-    elif tasklist == {}:
-        print(IDToTitle[tasklistID], '(empty)')
-        return
+    #elif tasklist == {}:
+        #print(IDToTitle[tasklistID], '(empty)')
+        #return
     elif action is 'e':
         print('Editing task...')
         task = tasklist[tasklist.keys()[int(args['index'][0])]]
@@ -469,9 +467,9 @@ class Auth():
     def __init__(self, key_file):
         try:
             with open(key_file, 'r') as self.f:
-                self.clientid = self.f.readline().rstrip()
-                self.clientsecret = self.f.readline().rstrip()
-                self.apikey = self.f.readline().rstrip()
+                self.clientid = self.f.readline()
+                self.clientsecret = self.f.readline()
+                self.apikey = self.f.readline()
         except IOError:
             self.clientid = raw_input("Enter your clientID: ")
             self.clientsecret = raw_input("Enter your client secret: ")
@@ -544,6 +542,22 @@ def main(args):
         readLoop(args)
     put_data()
     sys.exit(True)
+
+class textcolor:
+    # Colored output
+    # It is possible to use more conventional colors:
+    # i.e. HEADER = '\033[1;31m'
+    HEADER = '\033[1;38;5;218m'
+    DATE = '\033[1;38;5;249m'
+    NOTES = '\033[1;38;5;252m'
+    TITLE = '\033[1;38;5;195m'
+    ENDC = '\033[0m'
+
+    def disable(self):
+        self.HEADER = ''
+        self.DATE = ''
+        self.NOTES = ''
+        self.ENDC = ''    
 
 if __name__ == '__main__':
     authenticate()
