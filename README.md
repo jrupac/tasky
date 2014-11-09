@@ -55,7 +55,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
        0 [ ] The Matrix
 
     $ tasky -l -s
-    0 jrupac's list ( 5 )
+    0 To-Do ( 5 )
     1 Movies ( 1 )
 ```
 ### New List (--new, -n):
