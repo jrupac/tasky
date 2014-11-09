@@ -42,7 +42,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
    * List all tasks across all task lists.
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -l
     0 jrupac's list
        0 [ ] Buy birthday card
@@ -57,40 +57,40 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
     $ tasky -l -s
     0 jrupac's list ( 5 )
     1 Movies ( 1 )
-
+```
 ### New List (--new, -n):
    * Creates a new task list with the title specified by (--title, -t).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -n --title "My New List" -s
     Creating new task list...
     0 jrupac's list ( 5 )
     1 Movies ( 1 )
     2 My New List ( 0 )
-
+```
 ### Rename List (--rename, -r):
    * Rename an existing task list specified by (--tasklist) with the title
      specified by (--title, -t).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -r --title "Books" --tasklist 2 -s
     Renaming task list...
     0 jrupac's list ( 5 )
     1 Movies ( 1 )
     2 Books ( 0 )
-
+```
 ### Delete List (--delete, -d):
    * Deletes the task list specified by (--tasklist).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -d --tasklist 2 -s
     This will delete the list "Books" and all its contents permanently. Are you sure? (y/n): y
     0 jrupac's list ( 5 )
     1 Movies ( 1 )
-
+```
 ## Task Operations
 
 ### Adding a task (--add, -a):
@@ -99,7 +99,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
      specified by (--note), and parent specified by (--parent).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -a 'Do laundry' --note "And fold!" --date "1/1/2014"
     0 jrupac's list
        0 [ ] Do laundry
@@ -113,7 +113,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
          5 [ ] Milk
     1 Movies
        0 [ ] The Matrix
-
+```
 ### Editing a task (--edit, -e):
    * Edit a task in the task list specified by (--tasklist) with index
      (--index, -i) and set title specified by (--title), due date specified in
@@ -121,7 +121,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
      specified by (--parent).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -e -i 0 --date "2/1/2014"
     0 jrupac's list
        0 [ ] Do laundry
@@ -135,7 +135,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
          5 [ ] Milk
     1 Movies
        0 [ ] The Matrix
-
+```
 ### Toggling a task and its children (--toggle, -t):
    * Toggle the completed state of a task in the task list specified by
      (--tasklist) with index (--index, -i) and its children tasks.
@@ -143,7 +143,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
      tasks.
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -t -i 2
     0 jrupac's list
        0 [ ] Do laundry
@@ -157,7 +157,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
          5 [x] Milk
     1 Movies
        0 [ ] The Matrix
-
+```
 ### Removing a task and its children (--remove, -r):
    * Remove a task in the task list specified by (--tasklist) with index
      (--index, -i) and its children tasks.
@@ -165,7 +165,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
      tasks.
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     $ tasky -r -i 2
     0 jrupac's list
        0 [ ] Do laundry
@@ -175,13 +175,13 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
          Note: Also get flowers.
     1 Movies
        0 [ ] The Matrix
-
+```
 ### Clearing tasks (--clear, -c):
    * Clear all completed tasks in the task list specified by (--tasklist).
    * If the (--force, -f) flag is set, also clear non-completed tasks.
    * The (--summary, -s) flag will only print a summary of each task lists.
 
-
+```bash
     # Set one task as completed first
     $ tasky -t -i 0 -s
     0 jrupac's list ( 2 )
@@ -194,13 +194,13 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
          Due: February 1, 2014
     1 Movies
        0 [ ] The Matrix
-
+```
 ### Moving tasks (--move, -m):
    * Move a task in the task list specified by (--tasklist) with index specified
      by (--index, -i) to a different parent specified by (--parent, -p) or after
      task specified by (--after).
 
-
+```bash
     # Add another task first
     $ tasky -a --title "Homework"
     0 jrupac's list
@@ -219,7 +219,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
        1 [ ] Homework
     1 Movies
        0 [ ] The Matrix
-
+```
 ## Interactive Mode
 
   * If you want to make multiple operations in one session, run `tasky` without
@@ -227,7 +227,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
     exactly the same way but it is more efficient to run multiple operations
     within one interactive session than separately.
 
-
+```bash
     $ tasky
     [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit: -l -s
     0 jrupac's list ( 2 )
@@ -235,7 +235,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
     [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit:
     ...
-
+```
 
 
 ## Development/License
