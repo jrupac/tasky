@@ -44,7 +44,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky -l
-    0 jrupac's list
+    0 To-Do
        0 [ ] Buy birthday card
          Note: Also get flowers.
        1 [ ] Groceries
@@ -65,7 +65,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     $ tasky -n --title "My New List" -s
     Creating new task list...
-    0 jrupac's list ( 5 )
+    0 To-Do ( 5 )
     1 Movies ( 1 )
     2 My New List ( 0 )
 ```
@@ -77,7 +77,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     $ tasky -r --title "Books" --tasklist 2 -s
     Renaming task list...
-    0 jrupac's list ( 5 )
+    0 To-Do ( 5 )
     1 Movies ( 1 )
     2 Books ( 0 )
 ```
@@ -88,7 +88,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     $ tasky -d --tasklist 2 -s
     This will delete the list "Books" and all its contents permanently. Are you sure? (y/n): y
-    0 jrupac's list ( 5 )
+    0 To-Do ( 5 )
     1 Movies ( 1 )
 ```
 ## Task Operations
@@ -101,7 +101,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky -a 'Do laundry' --note "And fold!" --date "1/1/2014"
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: January 1, 2014
@@ -123,7 +123,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky -e -i 0 --date "2/1/2014"
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: February 1, 2014
@@ -145,7 +145,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky -t -i 2
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: February 1, 2014
@@ -167,7 +167,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky -r -i 2
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: February 1, 2014
@@ -184,11 +184,11 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     # Set one task as completed first
     $ tasky -t -i 0 -s
-    0 jrupac's list ( 2 )
+    0 To-Do ( 2 )
     1 Movies ( 1 )
 
     $ tasky -c -i 2
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: February 1, 2014
@@ -203,7 +203,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     # Add another task first
     $ tasky -a --title "Homework"
-    0 jrupac's list
+    0 To-Do
        0 [ ] Homework
        1 [ ] Do laundry
          Note: And fold!
@@ -212,7 +212,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
        0 [ ] The Matrix
 
     $ tasky -m -i 0 --after 1
-    0 jrupac's list
+    0 To-Do
        0 [ ] Do laundry
          Note: And fold!
          Due: February 1, 2014
@@ -230,7 +230,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 ```bash
     $ tasky
     [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit: -l -s
-    0 jrupac's list ( 2 )
+    0 To-Do ( 2 )
     1 Movies ( 1 )
 
     [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit:
