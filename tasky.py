@@ -6,16 +6,6 @@ A Google Tasks command line interface.
 
 __author__ = 'Ajay Roopakalu (https://github.com/jrupac/tasky)'
 
-# TODO:
-#  * error catching
-
-from apiclient.discovery import build
-from argparse import ArgumentParser
-from collections import OrderedDict
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.file import Storage
-from oauth2client.tools import run
-
 import datetime as dt
 import httplib2
 import os
@@ -23,86 +13,69 @@ import shlex
 import sys
 import time
 
-USAGE = """
-[a]dd, [c]lear, [d]elete, [e]dit, [r]emove task, [l]ist, [m]ove,
-[n]ew list/re[n]ame, [t]oggle, [q]uit: """
+import gflags
+
+from collections import OrderedDict
+
+from apiclient.discovery import build
+from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.file import Storage
+from oauth2client.tools import run
+
+
+FLAGS = gflags.FLAGS
+
+# Flags related to operations on task lists.
+gflags.DEFINE_boolean(
+  'add', False, 'Add operation', short_name='a')
+gflags.DEFINE_boolean(
+  'clear', False, 'Clear operation', short_name='c')
+gflags.DEFINE_boolean(
+  'delete', False, 'Delete operation', short_name='d')
+gflags.DEFINE_boolean(
+  'edit', False, 'Edit operation', short_name='e')
+gflags.DEFINE_boolean(
+  'list', False, 'List operation', short_name='l')
+gflags.DEFINE_boolean(
+  'move', False, 'Move operation', short_name='m')
+gflags.DEFINE_boolean(
+  'new', False, 'New operation', short_name='n')
+gflags.DEFINE_boolean(
+  'remove', False, 'Remove operation', short_name='r')
+gflags.DEFINE_boolean(
+  'summary', False, 'Print a summmary of the task lists.', short_name='s')
+gflags.DEFINE_boolean(
+  'toggle', False, 'Toggle operation', short_name='t')
+gflags.DEFINE_boolean(
+  'quit', False, 'Quit operation', short_name='q')
+
+# Flags related to options on above operations.
+gflags.DEFINE_integer(
+  'after', -1, 'The index of the task that this should be after')
+gflags.DEFINE_string(
+  'date', '', 'A date in MM/DD/YYYY format.')
+gflags.DEFINE_spaceseplist(
+  'index', '', 'Index of task.', short_name='i')
+gflags.DEFINE_boolean(
+  'force', False, 'Forcibly perform the operation.', short_name='f')
+gflags.DEFINE_string(
+  'note', '', 'A note to attach to a task.')
+gflags.DEFINE_string(
+  'parent', '', 'Index of parent task.', short_name='p')
+gflags.DEFINE_string(
+  'rename', '', 'Rename a task list.')
+gflags.DEFINE_integer(
+  'tasklist', 0, 'Id of task list to operate on.')
+gflags.DEFINE_string(
+  'title', '', 'The name of the task.')
+
+
+USAGE = ('[-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-m]ove, ' +
+         '[-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit: ')
 
 # Environment constants
 TASKY_DIR = os.path.join(os.environ['HOME'], '.tasky')
 KEYS_FILE = os.path.join(TASKY_DIR, 'keys.txt')
-
-
-def ParseArguments(args):
-  parser = ArgumentParser(description=(
-    'A Google Tasks Client.',
-    'Type tasky <argument> -h for more detailed information.'))
-
-  # Parse arguments
-  if len(args) > 1:
-    subparsers = parser.add_subparsers(dest='action')
-    parser.add_argument('-l', '--list',
-                        default=0,
-                        help='Specifies task list (default: 0)')
-
-    parser_a = subparsers.add_parser('a')
-    parser_a.add_argument('title', nargs='*',
-                          help='The name of the task.')
-    parser_a.add_argument('-d', '--date', nargs=1,
-                          help='A date in MM/DD/YYYY format.')
-    parser_a.add_argument('-n', '--note', nargs=1,
-                          help='Any quotation-enclosed string.')
-    parser_a.add_argument('-p', '--parent', nargs=1,
-                          help='The id of the parent task.')
-
-    parser_e = subparsers.add_parser('e')
-    parser_e.add_argument('index', nargs=1,
-                          help='Index of the task to edit.')
-    parser_e.add_argument('-t', '--title', nargs=1,
-                          help='The new title after editing.')
-    parser_e.add_argument('-d', '--date', nargs=1,
-                          help='A new date in MM/DD/YYYY format.')
-    parser_e.add_argument('-n', '--note', nargs=1,
-                          help='The new note after editing.')
-
-    parser_m = subparsers.add_parser('m')
-    parser_m.add_argument('index', nargs=1,
-                          help='Index of the task to move.')
-    parser_m.add_argument('-a', '--after',
-                          nargs=1, default=-1,
-                          help='Move the task after this index. (default: -1)')
-    parser_m.add_argument('-p', '--parent',
-                          nargs=1,
-                          help='Make the task a child of this index.')
-
-    parser_c = subparsers.add_parser('c')
-    parser_c.add_argument('-a', '--all',
-                          action='store_true',
-                          help='Remove all tasks, completed or not.')
-
-    subparsers.add_parser('d')
-    subparsers.add_parser('i')
-
-    parser_n = subparsers.add_parser('n')
-    parser_n.add_argument('title', nargs='*',
-                          help='The name of the new task list.')
-    parser_n.add_argument('-r', '--rename', action='store_true',
-                          help='Set if renaming an already existing task list.')
-
-    parser_l = subparsers.add_parser('l')
-    parser_l.add_argument('-a', '--all', action='store_true',
-                          help='Print all tasks in all task lists.')
-    parser_l.add_argument('-s', '--summary', action='store_true',
-                          help='Print a summary of available task lists.')
-
-    parser_r = subparsers.add_parser('r')
-    parser_r.add_argument('index', nargs='*',
-                          help='Index of the task to remove.')
-
-    parser_t = subparsers.add_parser('t')
-    parser_t.add_argument('index', nargs='*',
-                          help='Index of the task to toggle.')
-  sys.argv = args
-  return vars(parser.parse_args())
 
 
 class TextColor(object):
@@ -112,13 +85,13 @@ class TextColor(object):
   DATE = '\033[1;38;5;249m'
   NOTES = '\033[1;38;5;252m'
   TITLE = '\033[1;38;5;195m'
-  ENDC = '\033[0m'
+  CLEAR = '\033[0m'
 
   def Disable(self):
     self.HEADER = ''
     self.DATE = ''
     self.NOTES = ''
-    self.ENDC = ''
+    self.CLEAR = ''
 
 
 class Auth(object):
@@ -134,9 +107,9 @@ class Auth(object):
       self.clientId = raw_input("Enter your clientID: ")
       self.clientSecret = raw_input("Enter your client secret: ")
       self.apiKey = raw_input("Enter your API key: ")
-      self.WriteAuth()
+      self._WriteAuth()
 
-  def WriteAuth(self):
+  def _WriteAuth(self):
     if not os.path.exists(TASKY_DIR):
       os.makedirs(TASKY_DIR)
     with open(KEYS_FILE, 'w') as self.auth:
@@ -167,15 +140,42 @@ class Tasky(object):
     self.Authenticate()
     self.GetData()
 
-  def AddTask(self, listIndex, task):
-    tasklist = self.taskLists[self.taskLists.keys()[listIndex]]
+  def Authenticate(self):
+    f = Auth(KEYS_FILE)
+
+    # OAuth 2.0 Authentication
+    flow = OAuth2WebServerFlow(
+      client_id=f.GetClientId(),
+      client_secret=f.GetClientSecret(),
+      scope='https://www.googleapis.com/auth/tasks',
+      user_agent='Tasky/v1')
+
+    # If credentials don't exist or are invalid, run through the native client
+    # flow. The Storage object will ensure that if successful, the good
+    # Credentials will get written back to a file.
+    storage = Storage(os.path.join(TASKY_DIR, 'tasks.dat'))
+    credentials = storage.get()
+
+    if credentials is None or credentials.invalid:
+      credentials = run(flow, storage)
+
+    http = httplib2.Http()
+    http = credentials.authorize(http)
+
+    # The main Tasks API object.
+    self.service = build(
+      serviceName='tasks', version='v1', http=http,
+      developerKey=f.GetApiKey())
+
+  def AddTask(self, task):
+    tasklistId = self.taskLists.keys()[FLAGS.tasklist]
+    tasklist = self.taskLists[tasklistId]
 
     if 'parent' in task:
       parent = tasklist.keys()[task['parent']]
       newTask = self.service.tasks().insert(
-          tasklist=self.taskLists.keys()[listIndex], parent=parent,
-          body=task).execute()
-      # Re-insert the new task in order
+        tasklist=tasklistId, parent=parent, body=task).execute()
+      # Re-insert the new task in order.
       newDict = OrderedDict()
       for tt in tasklist:
         newDict[tt] = tasklist[tt]
@@ -183,51 +183,45 @@ class Tasky(object):
           newDict[newTask['id']] = newTask
     else:
       newTask = self.service.tasks().insert(
-          tasklist=self.taskLists.keys()[listIndex], body=task).execute()
+          tasklist=tasklistId, body=task).execute()
       newDict = OrderedDict()
       newDict[newTask['id']] = newTask
       for tt in tasklist:
         newDict[tt] = tasklist[tt]
 
-    # Update records
-    self.taskLists[self.taskLists.keys()[listIndex]] = newDict
+    # Update records.
+    self.taskLists[tasklistId] = newDict
     self.idToTitle[newTask['id']] = newTask['title']
     newTask['modified'] = Tasky.UNCHANGED
 
-  def MoveTask(self, listIndex, task, args):
-    tasklistIndex = self.taskLists.keys()[listIndex]
+  def MoveTask(self, task):
+    tasklistIndex = self.taskLists.keys()[FLAGS.tasklist]
     tasklist = self.taskLists[tasklistIndex]
     after = None
     parent = None
 
-    if (args['after'] is not None and
-        args['after'] != -1 and
-        int(args['after'][0]) != -1):
-      after = tasklist.keys()[int(args['after'][0])]
+    if FLAGS['after'].present:
+      after = tasklist.keys()[FLAGS.after]
 
-    if args['parent'] is not None:
-      parent = tasklist.keys()[int(args['parent'][0])]
+    if FLAGS['parent'].present:
+      parent = tasklist.keys()[FLAGS.parent]
     elif 'parent' in task:
       parent = task['parent']
 
     newTask = self.service.tasks().move(
       tasklist=tasklistIndex, task=task['id'], parent=''.join(parent),
       previous=''.join(after), body=task).execute()
-    # del TaskLists[tasklistIndex][task['id']]
-    # tasklist[newTask['id']] = newTask
-    # IDToTitle[newTask['id']] = newTask['title']
-    # newTask['modified'] = UNCHANGED
 
-  def RemoveTask(self, listIndex, task):
-    tasklist = self.taskLists[self.taskLists.keys()[listIndex]]
+  def RemoveTask(self, task):
+    tasklist = self.taskLists[self.taskLists.keys()[FLAGS.tasklist]]
 
-    # If already deleted, do nothing
+    # If already deleted, do nothing.
     if task['modified'] is Tasky.DELETED:
       return
     task['modified'] = Tasky.DELETED
     del self.idToTitle[task['id']]
 
-    # Also delete all children of deleted tasks
+    # Also delete all children of deleted tasks.
     for taskID in tasklist:
       t = tasklist[taskID]
       if ('parent' in t and
@@ -237,9 +231,10 @@ class Tasky(object):
         if t['id'] in self.idToTitle:
           del self.idToTitle[t['id']]
 
-  def ToggleTask(self, listIndex, task):
-    tasklist = self.taskLists[self.taskLists.keys()[listIndex]]
+  def ToggleTask(self, task):
+    tasklist = self.taskLists[self.taskLists.keys()[FLAGS.tasklist]]
 
+    # If already deleted, do nothing.
     if task['modified'] is Tasky.DELETED:
       return
     task['modified'] = Tasky.MODIFIED
@@ -251,7 +246,7 @@ class Tasky(object):
       if 'completed' in task:
         del task['completed']
 
-    # Also toggle all children whose parents were toggled
+    # Also toggle all children whose parents were toggled.
     toggle_tree = [task['id']]
     for taskID in tasklist:
       t = tasklist[taskID]
@@ -312,7 +307,11 @@ class Tasky(object):
           self.service.tasks().delete(
             tasklist=tasklistID, task=taskID).execute()
 
-  def PrintAllTasks(self, tasklistID):
+  def PrintAllTaskLists(self):
+    for idx, tasklistID in enumerate(self.taskLists):
+      self.PrintAllTasks(idx, tasklistID)
+
+  def PrintAllTasks(self, idx, tasklistID):
     tab = '  '
 
     # No task lists
@@ -326,10 +325,13 @@ class Tasky(object):
 
     # Print task name
     if len(self.taskLists[tasklistID]) == 0:
-      print (TextColor.HEADER, self.idToTitle[tasklistID], TextColor.ENDC,
-             '(empty)')
+      print ('%d %s%s%s (empty)' % (
+             idx, TextColor.HEADER, self.idToTitle[tasklistID],
+             TextColor.CLEAR))
     else:
-      print TextColor.HEADER, self.idToTitle[tasklistID], TextColor.ENDC
+      print ('%d %s%s%s' % (
+             idx, TextColor.HEADER, self.idToTitle[tasklistID],
+             TextColor.CLEAR))
 
     for taskID in self.taskLists[tasklistID]:
       task = self.taskLists[tasklistID][taskID]
@@ -338,12 +340,12 @@ class Tasky(object):
       depth = 1
       isCompleted = (task['status'] == 'completed')
 
-      # Set the depth of the current task
+      # Set the depth of the current task.
       if 'parent' in task and task['parent'] in depthMap:
         depth = depthMap[task['parent']] + 1
       depthMap[task['id']] = depth
 
-      # Print x in box if task has already been completed
+      # Print x in box if task has already been completed.
       if isCompleted:
         print ('%s%s [x] %s' % (
                tab * depth, self.taskLists[tasklistID].keys().index(taskID),
@@ -352,22 +354,22 @@ class Tasky(object):
         print ('%s%s%s [ ] %s%s' % (
                TextColor.TITLE, tab * depth,
                self.taskLists[tasklistID].keys().index(taskID), task['title'],
-               TextColor.ENDC))
+               TextColor.CLEAR))
 
-      # Print due date if specified
+      # Print due date if specified.
       if 'due' in task:
         date = dt.datetime.strptime(task['due'],
                                     '%Y-%m-%dT%H:%M:%S.%fZ')
         output = date.strftime('%a, %b %d, %Y')
         print ('%s%sDue Date: %s%s' % (
                tab * (depth + 1), TextColor.DATE,
-               output, TextColor.ENDC))
+               output, TextColor.CLEAR))
 
-      # Print notes if specified
+      # Print notes if specified.
       if 'notes' in task:
         print ('%s%sNotes: %s%s' % (
                tab * (depth + 1), TextColor.NOTES, task['notes'],
-               TextColor.ENDC))
+               TextColor.CLEAR))
 
   def PrintSummary(self):
     for tasklistID in self.taskLists:
@@ -375,168 +377,126 @@ class Tasky(object):
              self.taskLists.keys().index(tasklistID),
              self.idToTitle[tasklistID], len(self.taskLists[tasklistID])))
 
-  def HandleInputArgs(self, args, atasklistID=0):
-    action = ''.join(args['action'])
-    args['list'] = int(args['list'])
-    if atasklistID == 0:
-      atasklistID = args['list']
-    tasklistID = self.taskLists.keys()[atasklistID]
+  def HandleInputArgs(self):
+    tasklistID = self.taskLists.keys()[FLAGS.tasklist]
     tasklist = self.taskLists[tasklistID]
 
-    if action is 'a':
-      for title in args['title']:
-        task = {'title': ''.join(title)}
-        if args['date'] is not None:
-          dstr = ''.join(args['date'])
-          d = time.strptime(dstr, "%m/%d/%Y")
-          task['due'] = (str(d.tm_year) + '-' +
-                         str(d.tm_mon) + '-' +
-                         str(d.tm_mday) +
-                         'T12:00:00.000Z')
-        if args['note'] is not None:
-          task['notes'] = ''.join(args['note'])
-        if args['parent'] is not None:
-          task['parent'] = int(args['parent'][0])
-        print 'Adding task...'
-        self.AddTask(atasklistID, task)
-    if action is 'd':
-      readIn = raw_input('This will delete the list "' +
-                         self.idToTitle[tasklistID] +
-                         ('" and all its contents permanently. Are you sure?',
-                          '(y/n): '))
-      if readIn is 'Y' or readIn is 'y':
-          self.service.tasklists().delete(tasklist=tasklistID).execute()
-      del self.taskLists[tasklistID]
-      self.PrintSummary()
-      self.PutData()
-      sys.exit(True)
-    if action is 'n':
-      if args['rename'] is True:
-        print 'Renaming task list...'
-        tasklist = self.service.tasklists().get(tasklist=tasklistID).execute()
-        tasklist['title'] = args['title'][0]
-        self.idToTitle[tasklistID] = args['title'][0]
-        self.service.tasklists().update(
-            tasklist=tasklistID,
-            body=tasklist
-            ).execute()
-        time.sleep(3)
-      else:
-        print 'Creating new task list...'
-        newTaskList = self.service.tasklists().insert(
-            body={'title': args['title']}).execute()
-        self.idToTitle[newTaskList['id']] = newTaskList['title']
-        self.taskLists[newTaskList['id']] = OrderedDict()
-      self.PrintSummary()
-      self.PutData()
-      sys.exit(True)
-    #elif tasklist == {}:
-        #print(IDToTitle[tasklistID], '(empty)')
-        #return
-    elif action is 'e':
-      print 'Editing task...'
-      task = tasklist[tasklist.keys()[int(args['index'][0])]]
-      if args['title'] is not None:
-        task['title'] = ''.join(args['title'])
-      if args['date'] is not None:
-        dstr = ''.join(args['date'])
-        d = time.strptime(dstr, "%m/%d/%Y")
+    if FLAGS.add:
+      task = {'title': FLAGS.title}
+      if FLAGS['date'].present:
+        d = time.strptime(FLAGS.date, "%m/%d/%Y")
         task['due'] = (str(d.tm_year) + '-' +
                        str(d.tm_mon) + '-' +
                        str(d.tm_mday) +
                        'T12:00:00.000Z')
-      if args['note'] is not None:
-        task['notes'] = ''.join(args['note'])
+      if FLAGS['note'].present:
+        task['notes'] = FLAGS.note
+      if FLAGS['parent'].present:
+        task['parent'] = FLAGS.parent
+      print 'Adding task...'
+      self.AddTask(task)
+    elif FLAGS.delete:
+      readIn = raw_input(
+        'This will delete the list "' + self.idToTitle[tasklistID] +
+        '" and all its contents permanently. Are you sure? (y/n): ')
+      if readIn in ['y', 'Y']:
+        self.service.tasklists().delete(tasklist=tasklistID).execute()
+        del self.taskLists[tasklistID]
+      self.PutData()
+    elif FLAGS.new:
+      print 'Creating new task list...'
+      newTaskList = self.service.tasklists().insert(
+        body={'title': FLAGS.title}).execute()
+      self.idToTitle[newTaskList['id']] = newTaskList['title']
+      self.taskLists[newTaskList['id']] = OrderedDict()
+      self.PutData()
+    elif FLAGS.rename:
+      print 'Renaming task list...'
+      tasklist = self.service.tasklists().get(tasklist=tasklistID).execute()
+      tasklist['title'] = FLAGS.title
+      self.idToTitle[tasklistID] = FLAGS.title
+      self.service.tasklists().update(
+        tasklist=tasklistID, body=tasklist).execute()
+      self.PutData()
+    elif FLAGS.edit:
+      print 'Editing task...'
+      task = tasklist[tasklist.keys()[int(FLAGS.index[0])]]
+      if FLAGS.title:
+        task['title'] = FLAGS.title
+      if FLAGS.date:
+        d = time.strptime(FLAGS.date, "%m/%d/%Y")
+        task['due'] = (str(d.tm_year) + '-' +
+                       str(d.tm_mon) + '-' +
+                       str(d.tm_mday) +
+                       'T12:00:00.000Z')
+      if FLAGS.note:
+        task['notes'] = FLAGS.note
       if task['modified'] == Tasky.DELETED:
         return
       task['modified'] = Tasky.MODIFIED
-    elif action is 'm':
+    elif FLAGS.move:
       print 'Moving task...'
-      task = tasklist[tasklist.keys()[int(args['index'][0])]]
-      self.MoveTask(atasklistID, task, args)
+      task = tasklist[tasklist.keys()[int(FLAGS.index[0])]]
+      self.MoveTask(task)
       self.PutData()
-      sys.exit(True)
-    elif action is 'c':
-      if args['all'] is True:
-        print 'Removing all tasks...'
+    elif FLAGS.clear:
+      if FLAGS.force:
+        print 'Removing all task(s)...'
         for taskID in tasklist:
-          self.RemoveTask(atasklistID, tasklist[taskID])
+          self.RemoveTask(tasklist[taskID])
       else:
-        print 'Clearing completed tasks...'
+        print 'Clearing completed task(s)...'
         self.service.tasks().clear(tasklist=tasklistID).execute()
         for taskID in tasklist:
           task = tasklist[taskID]
           if task['status'] == 'completed':
             task['modified'] = Tasky.DELETED
-    elif action is 'r':
-      print 'Removing task...'
-      for index in args['index']:
-        index = int(index)
-        self.RemoveTask(atasklistID, tasklist[tasklist.keys()[index]])
-    elif action is 't':
-      print 'Toggling task...'
-      for index in args['index']:
-        index = int(index)
-        self.ToggleTask(atasklistID, tasklist[tasklist.keys()[index]])
+    elif FLAGS.remove:
+      print 'Removing task(s)...'
+      for index in FLAGS.index:
+        self.RemoveTask(tasklist[tasklist.keys()[int(index)]])
+    elif FLAGS.toggle:
+      print 'Toggling task(s)...'
+      for index in FLAGS.index:
+        self.ToggleTask(tasklist[tasklist.keys()[int(index)]])
 
-    if action is 'l' and args['all'] is True:
-      for tasklistID in self.taskLists:
-        self.PrintAllTasks(tasklistID)
-    elif action is 'l' and args['summary'] is True:
-      self.PrintSummary()
-    elif action is 'i':
-      self.ReadLoop(args, atasklistID)
+
+def ReadLoop(tasky, args):
+  while True:
+    # In the interactive case, display the list before any operations.
+    if FLAGS.summary:
+      tasky.PrintSummary()
     else:
-      self.PrintAllTasks(tasklistID)
+      tasky.PrintAllTaskLists()
 
-  def Authenticate(self):
-    f = Auth(KEYS_FILE)
+    readIn = raw_input(USAGE)
+    # Prepend a string to hold the place of the application name.
+    args = [''] + shlex.split(readIn)
+    # Re-populate flags based on this input.
+    FLAGS.Reset()
+    FLAGS(args)
 
-    # OAuth 2.0 Authentication
-    flow = OAuth2WebServerFlow(
-      client_id=f.GetClientId(),
-      client_secret=f.GetClientSecret(),
-      scope='https://www.googleapis.com/auth/tasks',
-      user_agent='Tasky/v1')
-
-    # If credentials don't exist or are invalid, run through the native client
-    # flow. The Storage object will ensure that if successful, the good
-    # Credentials will get written back to a file.
-    storage = Storage(os.path.join(TASKY_DIR, 'tasks.dat'))
-    credentials = storage.get()
-
-    if credentials is None or credentials.invalid:
-      credentials = run(flow, storage)
-
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    # The main Tasks API object
-    self.service = build(
-      serviceName='tasks', version='v1', http=http,
-      developerKey=f.GetApiKey())
-
-  def ReadLoop(self, args, tasklistID=0):
-    while True:
-      readIn = raw_input(USAGE)
-      if readIn is '' or readIn is 'q':
-        break
-      args = shlex.split(readIn)
-      args[:0] = '/'
-      args = ParseArguments(args)
-      self.HandleInputArgs(args, tasklistID)
+    if FLAGS.quit:
+      break
+    tasky.HandleInputArgs()
 
 
 def main(args):
   tasky = Tasky()
-  parsedArgs = ParseArguments(args)
 
   if len(args) > 1:
-    tasky.HandleInputArgs(parsedArgs)
-  else:
-    tasky.ReadLoop(parsedArgs)
+    FLAGS(args)
+    tasky.HandleInputArgs()
 
-  # Push final changes before exiting
+    # In the non-interactive case, print task list after the operation.
+    if FLAGS.summary:
+      tasky.PrintSummary()
+    else:
+      tasky.PrintAllTaskLists()
+  else:
+    ReadLoop(tasky, args)
+
+  # Push any final changes before exiting.
   tasky.PutData()
 
 

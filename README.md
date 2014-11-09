@@ -1,17 +1,18 @@
-# Tasky.txt
+# Tasky
 
 ## Description
-[Tasky][tasky] is a command-line interface to Google's Tasks API. It is meant to parallel the functionality of [Todo.txt][todotxt].
+[Tasky][tasky] is a command-line interface to Google's Tasks API. It is meant to
+parallel the functionality of [Todo.txt][todotxt].
 
 ## Dependencies
-Requires Python 2.7 and the [Google API client for Python](http://code.google.com/p/google-api-python-client/).
-The needed packages are installable from PyPi and are in the `requirements.txt` file. Use `pip install -r requirements.txt` to install them.
+Requires Python 2.7, [Google API client for Python](https://code.google.com/p/google-api-python-client/),
+and [Gflags](https://code.google.com/p/python-gflags/). The needed packages are
+installable from PyPi and are in the `requirements.txt` file. Use
+`pip install -r requirements.txt` to install them.
 
-**NOTE**: In order to allow your instance of Tasky to successfully make Tasks API calls, you must first
-register your project with Google. Instructions are provided below.
-
-**NOTE**: The script will create a `~/.tasky/keys.txt` file that persists your API credentials
-on disk. Take care not to commit this data into any public repositories. You are responsible for securing your keys!
+**NOTE**: The script will create a `~/.tasky/keys.txt` file that persists your
+API credentials on disk. Take care not to commit this data into any public
+repositories. You are responsible for securing your keys!
 
 ## Installation
 
@@ -28,137 +29,220 @@ on disk. Take care not to commit this data into any public repositories. You are
 10. Run ./tasky.py and enter the clientID, client secret and API key.
 
 ### Local
+
 Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend something similar; however, for clarity's sake I will refer to the script as 'tasky' for this documentation.
 
       ln -s /dir/for/tasky.py /folder/in/$PATH/tasky
 
-## Usage Examples
+# Usage Examples
 
-### List (l):
-   * Lists the tasks of the specified list, which defaults to 0.
-   * The -s flag will print a summary of your task lists.
-   * The -l flag is **universal** and comes _before_ arguments.
-   * The -a flag will print all lists and their tasks.
+## Task List Operations
 
->
-      tasky l
-      # jrupac's list
-      #    0 [ ] Buy birthday card
-      #    1 [x] TPS Reports
-      #    2 [ ] Groceries
-      #      3 [ ] Eggs
-      #      4 [ ] Bread
-      #      5 [ ] Milk
-
->
-      tasky l -s
-      # 0 jrupac's list ( 7 )
-      # 1 Movies ( 70 )
-      # 2 Testing ( 0 )
-      # 3 Mobile ( 0 )
-
->
-      tasky -l 2 l
-      # Testing (empty)
+### List (--list, -l):
+   * List all tasks across all task lists.
+   * The (--summary, -s) flag will only print a summary of each task lists.
 
 
->
-      tasky l -a
-      # -- long list of all tasks in all lists --
+    $ tasky -l
+    0 jrupac's list
+       0 [ ] Buy birthday card
+         Note: Also get flowers.
+       1 [ ] Groceries
+         2 [ ] Eggs
+         3 [ ] Bread
+         4 [ ] Milk
+    1 Movies
+       0 [ ] The Matrix
 
-### New List (n):
-   * Creates a new task list or (-r) renames an old one.
+    $ tasky -l -s
+    0 jrupac's list ( 5 )
+    1 Movies ( 1 )
 
->
-      tasky n "My New List"
-      tasky -l 2 n -r "New Name"
-      # Renaming task list...
-      # 0 jrupac's list ( 7 )
-      # 1 Movies ( 70 )
-      # 2 New Name ( 0 )
-      # 3 Mobile ( 0 )
-      # 4 My New List ( 0 )
+### New List (--new, -n):
+   * Creates a new task list with the title specified by (--title, -t).
+   * The (--summary, -s) flag will only print a summary of each task lists.
 
-### Delete List (d):
-   * Deletes a task list.
 
-### Adding a task (a):
-   * tasky a [--help/-h] [--parent/-p int] [--date/-d "MM/DD/YYYY"] [--note/-n "string"] title\*
-   * NOTE: flags must be before the task's title this means that multiple tasks must share the same flags
+    $ tasky -n --title "My New List" -s
+    Creating new task list...
+    0 jrupac's list ( 5 )
+    1 Movies ( 1 )
+    2 My New List ( 0 )
 
->
-      tasky a Groceries
-      tasky a "TPS Reports" "Buy birthday card"
-      tasky a -p 2 Eggs Bread Milk "Pasta sauce"
-      tasky a -d "5/14/11" -n "This is a note." "Name of task."
+### Rename List (--rename, -r):
+   * Rename an existing task list specified by (--tasklist) with the title
+     specified by (--title, -t).
+   * The (--summary, -s) flag will only print a summary of each task lists.
 
-### Toggling/removing a task and its children (r):
-   * tasky t index\*
-   * tasky r index\*
 
->
-      tasky t 2 6 7
-      tasky r 6 7
-      # Removing task...
-      # jrupac's list
-      #    0 [ ] Buy birthday card
-      #    1 [ ] TPS Reports
-      #    2 [x] Groceries
-      #      3 [x] Pasta sauce
-      #      4 [x] Milk
-      #      5 [x] Bread
+    $ tasky -r --title "Books" --tasklist 2 -s
+    Renaming task list...
+    0 jrupac's list ( 5 )
+    1 Movies ( 1 )
+    2 Books ( 0 )
 
-### Clearing tasks (c):
-   * tasky c
-      - clears completed tasks for specified list
-   * tasky c -a
-      - clears all tasks for specified list, completed or not
+### Delete List (--delete, -d):
+   * Deletes the task list specified by (--tasklist).
+   * The (--summary, -s) flag will only print a summary of each task lists.
 
-### Editing tasks (e):
-   * Edits the title, date, or note of a task
 
->
-      tasky e 0 -t "Buy Dad's birthday card" -n "Get him a gift card?"
-      # Editing task...
-      # jrupac's list
-      #    0 [ ] Buy Dad's birthday card
-      #      Notes: Get him a gift card?
-      #    1 [ ] TPS Reports
-      #    2 [x] Groceries
-      #      3 [x] Pasta sauce
-      #      4 [x] Milk
-      #      5 [x] Bread
+    $ tasky -d --tasklist 2 -s
+    This will delete the list "Books" and all its contents permanently. Are you sure? (y/n): y
+    0 jrupac's list ( 5 )
+    1 Movies ( 1 )
 
-### Moving tasks (m):
-   * Move tasks to a different parent or position.
-   * The -a/--after tag moves the task after the given index.
-   * The -p/--parent task allows you to give a task a new parent.
-   * NOTE: The immediate feedback display is still under development...
+## Task Operations
 
->
-      tasky m 2 -a 0
-      # jrupac's list
-      #    0 [ ] Buy Dad's birthday card
-      #      Notes: Get him a gift card?
-      #    1 [x] Groceries
-      #      2 [x] Pasta sauce
-      #      3 [x] Milk
-      #      4 [x] Bread
-      #    5 [ ] TPS Reports
+### Adding a task (--add, -a):
+   * Add a task to the task list specified by (--tasklist), with title specified
+     by (--title), due date specified in MM/DD/YYYY format by (--date), note
+     specified by (--note), and parent specified by (--parent).
+   * The (--summary, -s) flag will only print a summary of each task lists.
 
->
-      tasky m 3 -p 5
-      # jrupac's list
-      #    0 [ ] Buy Dad's birthday card
-      #      Notes: Get him a gift card?
-      #    1 [x] Groceries
-      #      2 [x] Pasta sauce
-      #      3 [x] Bread
-      #    4 [ ] TPS Reports
-      #      5 [x] Milk
+
+    $ tasky -a 'Do laundry' --note "And fold!" --date "1/1/2014"
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: January 1, 2014
+       1 [ ] Buy birthday card
+         Note: Also get flowers.
+       2 [ ] Groceries
+         3 [ ] Eggs
+         4 [ ] Bread
+         5 [ ] Milk
+    1 Movies
+       0 [ ] The Matrix
+
+### Editing a task (--edit, -e):
+   * Edit a task in the task list specified by (--tasklist) with index
+     (--index, -i) and set title specified by (--title), due date specified in
+     MM/DD/YYYY format by (--date), note specified by (--note), and parent
+     specified by (--parent).
+   * The (--summary, -s) flag will only print a summary of each task lists.
+
+
+    $ tasky -e -i 0 --date "2/1/2014"
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+       1 [ ] Buy birthday card
+         Note: Also get flowers.
+       2 [ ] Groceries
+         3 [ ] Eggs
+         4 [ ] Bread
+         5 [ ] Milk
+    1 Movies
+       0 [ ] The Matrix
+
+### Toggling a task and its children (--toggle, -t):
+   * Toggle the completed state of a task in the task list specified by
+     (--tasklist) with index (--index, -i) and its children tasks.
+   * The (--index, -i) can also take a space-separated string to remove multiple
+     tasks.
+   * The (--summary, -s) flag will only print a summary of each task lists.
+
+
+    $ tasky -t -i 2
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+       1 [ ] Buy birthday card
+         Note: Also get flowers.
+       2 [x] Groceries
+         3 [x] Eggs
+         4 [x] Bread
+         5 [x] Milk
+    1 Movies
+       0 [ ] The Matrix
+
+### Removing a task and its children (--remove, -r):
+   * Remove a task in the task list specified by (--tasklist) with index
+     (--index, -i) and its children tasks.
+   * The (--index, -i) can also take a space-separated string to remove multiple
+     tasks.
+   * The (--summary, -s) flag will only print a summary of each task lists.
+
+
+    $ tasky -r -i 2
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+       1 [ ] Buy birthday card
+         Note: Also get flowers.
+    1 Movies
+       0 [ ] The Matrix
+
+### Clearing tasks (--clear, -c):
+   * Clear all completed tasks in the task list specified by (--tasklist).
+   * If the (--force, -f) flag is set, also clear non-completed tasks.
+   * The (--summary, -s) flag will only print a summary of each task lists.
+
+
+    # Set one task as completed first
+    $ tasky -t -i 0 -s
+    0 jrupac's list ( 2 )
+    1 Movies ( 1 )
+
+    $ tasky -c -i 2
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+    1 Movies
+       0 [ ] The Matrix
+
+### Moving tasks (--move, -m):
+   * Move a task in the task list specified by (--tasklist) with index specified
+     by (--index, -i) to a different parent specified by (--parent, -p) or after
+     task specified by (--after).
+
+
+    # Add another task first
+    $ tasky -a --title "Homework"
+    0 jrupac's list
+       0 [ ] Homework
+       1 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+    1 Movies
+       0 [ ] The Matrix
+
+    $ tasky -m -i 0 --after 1
+    0 jrupac's list
+       0 [ ] Do laundry
+         Note: And fold!
+         Due: February 1, 2014
+       1 [ ] Homework
+    1 Movies
+       0 [ ] The Matrix
+
+## Interactive Mode
+
+  * If you want to make multiple operations in one session, run `tasky` without
+    arguments to put it into interactive mode. All the above operations work
+    exactly the same way but it is more efficient to run multiple operations
+    within one interactive session than separately.
+
+
+    $ tasky
+    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit: -l -s
+    0 jrupac's list ( 2 )
+    1 Movies ( 1 )
+
+    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit:
+    ...
+
+
 
 ## Development/License
-The script currently does very little error catching and still has a few bugs. Please feel free to list bugs or feature requests on this github page in the issues section. This script was originally created by [Ajay Roopakalu](https://github.com/jrupac/tasky), and is under the [GNU GPL license](http://www.gnu.org/licenses/gpl.txt).
+Please feel free to list bugs or feature requests on this github page in the
+issues section. This script was originally created by
+[Ajay Roopakalu](https://github.com/jrupac/tasky), and is under the
+[GNU GPL license](http://www.gnu.org/licenses/gpl.txt).
 
    [tasky]: https://github.com/jrupac/tasky
    [todotxt]: http://todotxt.com/
