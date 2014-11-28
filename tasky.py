@@ -100,9 +100,9 @@ class Auth(object):
   def __init__(self, keyFile):
     try:
       with open(keyFile, 'r') as self.f:
-        self.clientId = self.f.readline()
-        self.clientSecret = self.f.readline()
-        self.apiKey = self.f.readline()
+        self.clientId = self.f.readline().rstrip()
+        self.clientSecret = self.f.readline().rstrip()
+        self.apiKey = self.f.readline().rstrip()
     except IOError:
       self.clientId = raw_input("Enter your clientID: ")
       self.clientSecret = raw_input("Enter your client secret: ")
@@ -406,6 +406,8 @@ class Tasky(object):
       self.PutData()
     elif FLAGS.new:
       print 'Creating new task list...'
+      if not FLAGS.title:
+        print('WARNING: Creating task list with no title')
       newTaskList = self.service.tasklists().insert(
         body={'title': FLAGS.title}).execute()
       self.idToTitle[newTaskList['id']] = newTaskList['title']
