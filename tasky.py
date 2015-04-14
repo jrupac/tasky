@@ -492,7 +492,9 @@ def ReadLoop(tasky, args):
         tasky.PrintAllTaskLists()
 
     readIn = raw_input(USAGE)
-
+    if len(readIn) >= 1 and readIn[0] != "-":
+        readIn = "-" + readIn
+        
     # Prepend a string to hold the place of the application name.
     args = [''] + shlex.split(readIn)
     # Re-populate flags based on this input.
@@ -509,7 +511,7 @@ def main(args):
 
   if len(args) > 1:
     FLAGS(args)
-    tasky.HandleInputArgs()
+    tasky.HandleInputArgs([])
 
     # In the non-interactive case, print task list after the operation unless
     # --list was the operation just performed.
