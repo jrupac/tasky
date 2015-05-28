@@ -58,6 +58,8 @@ gflags.DEFINE_spaceseplist(
   'index', '', 'Index of task.', short_name='i')
 gflags.DEFINE_boolean(
   'force', False, 'Forcibly perform the operation.', short_name='f')
+gflags.DEFINE_boolean(
+  'color', True, 'Display output with terminal colors.', short_name='o')
 gflags.DEFINE_string(
   'note', '', 'A note to attach to a task.')
 gflags.DEFINE_string(
@@ -86,12 +88,6 @@ class TextColor(object):
   NOTES = '\033[1;38;5;252m'
   TITLE = '\033[1;38;5;195m'
   CLEAR = '\033[0m'
-
-  def Disable(self):
-    self.HEADER = ''
-    self.DATE = ''
-    self.NOTES = ''
-    self.CLEAR = ''
 
 
 class Auth(object):
@@ -381,6 +377,14 @@ class Tasky(object):
   def HandleInputArgs(self):
     taskListId = self.taskLists.keys()[FLAGS.tasklist]
     tasklist = self.taskLists[taskListId]
+
+    # First off, check if we should be displaying in color or not.
+    if not FLAGS.color:
+      TextColor.HEADER = ''
+      TextColor.DATE   = ''
+      TextColor.NOTES  = ''
+      TextColor.TITLE  = ''
+      TextColor.CLEAR  = ''
 
     if FLAGS.add:
       task = {'title': FLAGS.title}
