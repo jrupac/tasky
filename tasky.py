@@ -517,7 +517,14 @@ def main(args):
       if FLAGS.summary:
         tasky.PrintSummary()
       else:
-        tasky.PrintAllTaskLists()
+        if FLAGS['tasklist'].present:
+          tasklistId = tasky.taskLists.keys()[FLAGS.tasklist]
+          if FLAGS.summary:
+            tasky.PrintAllTasks(FLAGS.tasklist, tasklistId, onlySummary=True)
+          else:
+            tasky.PrintAllTasks(FLAGS.tasklist, tasklistId)
+        else:
+          tasky.PrintAllTaskLists()
   else:
     ReadLoop(tasky, args)
 
