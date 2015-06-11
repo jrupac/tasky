@@ -100,7 +100,7 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
    * The (--summary, -s) flag will only print a summary of each task lists.
 
 ```bash
-    $ tasky -a 'Do laundry' --note "And fold!" --date "1/1/2014"
+    $ tasky -a --title 'Do laundry' --note "And fold!" --date "1/1/2014"
     0 To-Do
        0 [ ] Do laundry
          Note: And fold!
