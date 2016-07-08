@@ -20,7 +20,7 @@ from collections import OrderedDict
 from apiclient.discovery import build
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.file import Storage
-from oauth2client.tools import run
+from oauth2client.tools import run_flow as run
 
 
 FLAGS = gflags.FLAGS
