@@ -62,8 +62,8 @@ gflags.DEFINE_boolean(
   'color', True, 'Display output with terminal colors.', short_name='o')
 gflags.DEFINE_string(
   'note', '', 'A note to attach to a task.')
-gflags.DEFINE_string(
-  'parent', '', 'Index of parent task.', short_name='p')
+gflags.DEFINE_integer(
+  'parent', 0, 'Index of parent task.', short_name='p')
 gflags.DEFINE_string(
   'rename', '', 'Rename a task list.')
 gflags.DEFINE_integer(
