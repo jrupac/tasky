@@ -133,10 +133,10 @@ class Tasky(object):
   def __init__(self):
     self.taskLists = OrderedDict()
     self.idToTitle = OrderedDict()
-    self.Authenticate()
-    self.GetData()
+    self.service = None
 
   def Authenticate(self):
+    """Runs authentication flow and returns service object."""
     f = Auth(KEYS_FILE)
 
     # OAuth 2.0 Authentication
@@ -204,7 +204,7 @@ class Tasky(object):
     elif 'parent' in task:
       parent = task['parent']
 
-    newTask = self.service.tasks().move(
+    self.service.tasks().move(
       tasklist=tasklistIndex, task=task['id'], parent=''.join(parent),
       previous=''.join(after), body=task).execute()
 
@@ -317,7 +317,6 @@ class Tasky(object):
 
     # Use a dictionary to store the indent depth of each task
     depthMap = {taskListId: 0}
-    depth = 1
 
     # Print task name
     if len(self.taskLists[taskListId]) == 0:
@@ -482,7 +481,7 @@ class Tasky(object):
           self.PrintAllTaskLists()
 
 
-def ReadLoop(tasky, args):
+def ReadLoop(tasky):
   while True:
     # In the interactive case, display the list before any operations unless
     # the previous operation was a --list.
@@ -506,6 +505,8 @@ def ReadLoop(tasky, args):
 
 def main(args):
   tasky = Tasky()
+  tasky.Authenticate()
+  tasky.GetData()
 
   if len(args) > 1:
     FLAGS(args)
@@ -526,7 +527,7 @@ def main(args):
         else:
           tasky.PrintAllTaskLists()
   else:
-    ReadLoop(tasky, args)
+    ReadLoop(tasky)
 
   # Push any final changes before exiting.
   tasky.PutData()
