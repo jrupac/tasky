@@ -373,7 +373,7 @@ class Tasky(object):
              self.taskLists.keys().index(taskListId),
              self.idToTitle[taskListId], len(self.taskLists[taskListId])))
 
-  def HandleInputArgs(self):
+  def HandleInputArgs(self, ret_val):
     taskListId = self.taskLists.keys()[FLAGS.tasklist]
     tasklist = self.taskLists[taskListId]
 
@@ -387,6 +387,9 @@ class Tasky(object):
 
     if FLAGS.add:
       task = {'title': FLAGS.title}
+      if ret_val and len(FLAGS.title) == 0:
+          # use additional values if user didnt specify the title via a flag
+          task["title"] = " ".join(ret_val)
       if FLAGS['date'].present:
         d = time.strptime(FLAGS.date, "%m/%d/%Y")
         task['due'] = (str(d.tm_year) + '-' +
@@ -492,15 +495,18 @@ def ReadLoop(tasky):
         tasky.PrintAllTaskLists()
 
     readIn = raw_input(USAGE)
+    if len(readIn) >= 1 and readIn[0] != "-":
+        readIn = "-" + readIn
+        
     # Prepend a string to hold the place of the application name.
     args = [''] + shlex.split(readIn)
     # Re-populate flags based on this input.
     FLAGS.Reset()
-    FLAGS(args)
+    ret_val = [val for val in FLAGS(args) if len(val) > 0]
 
     if FLAGS.quit:
       break
-    tasky.HandleInputArgs()
+    tasky.HandleInputArgs(ret_val)
 
 
 def main(args):
@@ -510,7 +516,7 @@ def main(args):
 
   if len(args) > 1:
     FLAGS(args)
-    tasky.HandleInputArgs()
+    tasky.HandleInputArgs([])
 
     # In the non-interactive case, print task list after the operation unless
     # --list was the operation just performed.
