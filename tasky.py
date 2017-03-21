@@ -6,6 +6,7 @@ A Google Tasks command line interface.
 
 __author__ = 'Ajay Roopakalu (https://github.com/jrupac/tasky)'
 
+import codecs
 import datetime as dt
 import httplib2
 import os
@@ -491,9 +492,14 @@ def ReadLoop(tasky):
       else:
         tasky.PrintAllTaskLists()
 
-    readIn = raw_input(USAGE)
-    # Prepend a string to hold the place of the application name.
-    args = [''] + shlex.split(readIn)
+    # Convert all input to unicode type with utf-8 encoding.
+    readIn = unicode(raw_input(USAGE), 'utf-8')
+    # shlex does not accept unicode types, so convert to str before lexing.
+    # Also prepend a string to hold the place of the application name.
+    args = [''] + shlex.split(readIn.encode('utf-8'))
+    # Decode back to unicode type again before further processing.
+    args = [x.decode('utf-8') for x in args]
+
     # Re-populate flags based on this input.
     FLAGS.Reset()
     FLAGS(args)
@@ -504,6 +510,10 @@ def ReadLoop(tasky):
 
 
 def main(args):
+  # Ensure that stdout is written as utf-8.
+  writer = codecs.getwriter('utf-8')
+  sys.stdout = writer(sys.stdout)
+
   tasky = Tasky()
   tasky.Authenticate()
   tasky.GetData()
