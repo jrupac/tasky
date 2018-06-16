@@ -44,7 +44,7 @@ gflags.DEFINE_boolean(
 gflags.DEFINE_boolean(
   'remove', False, 'Remove operation', short_name='r')
 gflags.DEFINE_boolean(
-  'summary', False, 'Print a summmary of the task lists.', short_name='s')
+  'summary', False, 'Print a summary of the task lists.', short_name='s')
 gflags.DEFINE_boolean(
   'toggle', False, 'Toggle operation', short_name='t')
 gflags.DEFINE_boolean(
@@ -514,12 +514,13 @@ def main(args):
   writer = codecs.getwriter('utf-8')
   sys.stdout = writer(sys.stdout)
 
+  FLAGS(args)
+
   tasky = Tasky()
   tasky.Authenticate()
   tasky.GetData()
 
   if len(args) > 1:
-    FLAGS(args)
     tasky.HandleInputArgs()
 
     # In the non-interactive case, print task list after the operation unless
