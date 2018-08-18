@@ -1,2 +1,7 @@
 *.py[cod]
-.idea/
+.idea
+.vscode
+*.iml
+*.bak
+venv
+tags
