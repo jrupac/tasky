@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 """
 A Google Tasks command line interface.
@@ -6,15 +6,15 @@ A Google Tasks command line interface.
 
 __author__ = 'Ajay Roopakalu (https://github.com/jrupac/tasky)'
 
-import codecs
 import datetime as dt
 import httplib2
 import os
+import readline # imported for side effects
 import shlex
 import sys
 import time
 
-import gflags
+from absl import flags as gflags
 
 from collections import OrderedDict
 
@@ -101,9 +101,9 @@ class Auth(object):
         self.clientSecret = self.f.readline().rstrip()
         self.apiKey = self.f.readline().rstrip()
     except IOError:
-      self.clientId = raw_input("Enter your clientID: ")
-      self.clientSecret = raw_input("Enter your client secret: ")
-      self.apiKey = raw_input("Enter your API key: ")
+      self.clientId = input("Enter your clientID: ")
+      self.clientSecret = input("Enter your client secret: ")
+      self.apiKey = input("Enter your API key: ")
       self._WriteAuth()
 
   def _WriteAuth(self):
@@ -165,11 +165,11 @@ class Tasky(object):
       developerKey=f.GetApiKey())
 
   def AddTask(self, task):
-    tasklistId = self.taskLists.keys()[FLAGS.tasklist]
+    tasklistId = list(self.taskLists.keys())[FLAGS.tasklist]
     tasklist = self.taskLists[tasklistId]
 
     if 'parent' in task:
-      parent = tasklist.keys()[task['parent']]
+      parent = list(tasklist.keys())[task['parent']]
       newTask = self.service.tasks().insert(
         tasklist=tasklistId, parent=parent, body=task).execute()
       # Re-insert the new task in order.
@@ -192,16 +192,16 @@ class Tasky(object):
     newTask['modified'] = Tasky.UNCHANGED
 
   def MoveTask(self, task):
-    tasklistIndex = self.taskLists.keys()[FLAGS.tasklist]
+    tasklistIndex = list(self.taskLists.keys())[FLAGS.tasklist]
     tasklist = self.taskLists[tasklistIndex]
     after = None
     parent = None
 
     if FLAGS['after'].present:
-      after = tasklist.keys()[FLAGS.after]
+      after = list(tasklist.keys())[FLAGS.after]
 
     if FLAGS['parent'].present:
-      parent = tasklist.keys()[FLAGS.parent]
+      parent = list(tasklist.keys())[FLAGS.parent]
     elif 'parent' in task:
       parent = task['parent']
 
@@ -210,7 +210,7 @@ class Tasky(object):
       previous=''.join(after), body=task).execute()
 
   def RemoveTask(self, task):
-    tasklist = self.taskLists[self.taskLists.keys()[FLAGS.tasklist]]
+    tasklist = self.taskLists[list(self.taskLists.keys())[FLAGS.tasklist]]
 
     # If already deleted, do nothing.
     if task['modified'] is Tasky.DELETED:
@@ -229,7 +229,7 @@ class Tasky(object):
           del self.idToTitle[t['id']]
 
   def ToggleTask(self, task):
-    tasklist = self.taskLists[self.taskLists.keys()[FLAGS.tasklist]]
+    tasklist = self.taskLists[list(self.taskLists.keys())[FLAGS.tasklist]]
 
     # If already deleted, do nothing.
     if task['modified'] is Tasky.DELETED:
@@ -313,7 +313,7 @@ class Tasky(object):
 
     # No task lists
     if self.taskLists == {}:
-      print 'Found no task lists.'
+      print('Found no task lists.')
       return
 
     # Use a dictionary to store the indent depth of each task
@@ -321,13 +321,13 @@ class Tasky(object):
 
     # Print task name
     if len(self.taskLists[taskListId]) == 0:
-      print ('%d %s%s%s (empty)' % (
-             idx, TextColor.HEADER, self.idToTitle[taskListId],
-             TextColor.CLEAR))
+      print(('%d %s%s%s (empty)' % (
+            idx, TextColor.HEADER, self.idToTitle[taskListId],
+            TextColor.CLEAR)))
     else:
-      print ('%d %s%s%s' % (
-             idx, TextColor.HEADER, self.idToTitle[taskListId],
-             TextColor.CLEAR))
+      print(('%d %s%s%s' % (
+        idx, TextColor.HEADER, self.idToTitle[taskListId],
+        TextColor.CLEAR)))
 
     for taskId in self.taskLists[taskListId]:
       task = self.taskLists[taskListId][taskId]
@@ -343,14 +343,14 @@ class Tasky(object):
 
       # Print x in box if task has already been completed.
       if isCompleted:
-        print ('%s%s [x] %s' % (
-               tab * depth, self.taskLists[taskListId].keys().index(taskId),
-               task['title']))
+        print(('%s%s [x] %s' % (
+              tab * depth, list(self.taskLists[taskListId].keys()).index(taskId),
+              task['title'])))
       else:
-        print ('%s%s%s [ ] %s%s' % (
-               TextColor.TITLE, tab * depth,
-               self.taskLists[taskListId].keys().index(taskId), task['title'],
-               TextColor.CLEAR))
+        print(('%s%s%s [ ] %s%s' % (
+              TextColor.TITLE, tab * depth,
+              list(self.taskLists[taskListId].keys()).index(taskId), task['title'],
+              TextColor.CLEAR)))
 
       if not onlySummary:
         # Print due date if specified.
@@ -358,24 +358,24 @@ class Tasky(object):
           date = dt.datetime.strptime(task['due'],
                                       '%Y-%m-%dT%H:%M:%S.%fZ')
           output = date.strftime('%a, %b %d, %Y')
-          print ('%s%sDue Date: %s%s' % (
-                 tab * (depth + 1), TextColor.DATE,
-                 output, TextColor.CLEAR))
+          print(('%s%sDue Date: %s%s' % (
+                tab * (depth + 1), TextColor.DATE,
+                output, TextColor.CLEAR)))
 
         # Print notes if specified.
         if 'notes' in task:
-          print ('%s%sNotes: %s%s' % (
-                 tab * (depth + 1), TextColor.NOTES, task['notes'],
-                 TextColor.CLEAR))
+          print(('%s%sNotes: %s%s' % (
+                tab * (depth + 1), TextColor.NOTES, task['notes'],
+                TextColor.CLEAR)))
 
   def PrintSummary(self):
     for taskListId in self.taskLists:
-      print ('%s %s (%s)' % (
-             self.taskLists.keys().index(taskListId),
-             self.idToTitle[taskListId], len(self.taskLists[taskListId])))
+      print(('%s %s (%s)' % (
+            list(self.taskLists.keys()).index(taskListId),
+            self.idToTitle[taskListId], len(self.taskLists[taskListId]))))
 
   def HandleInputArgs(self):
-    taskListId = self.taskLists.keys()[FLAGS.tasklist]
+    taskListId = list(self.taskLists.keys())[FLAGS.tasklist]
     tasklist = self.taskLists[taskListId]
 
     # First off, check if we should be displaying in color or not.
@@ -398,10 +398,10 @@ class Tasky(object):
         task['notes'] = FLAGS.note
       if FLAGS['parent'].present:
         task['parent'] = FLAGS.parent
-      print 'Adding task...'
+      print('Adding task...')
       self.AddTask(task)
     elif FLAGS.delete:
-      readIn = raw_input(
+      readIn = input(
         'This will delete the list "' + self.idToTitle[taskListId] +
         '" and all its contents permanently. Are you sure? (y/n): ')
       if readIn in ['y', 'Y']:
@@ -409,7 +409,7 @@ class Tasky(object):
         del self.taskLists[taskListId]
       self.PutData()
     elif FLAGS.new:
-      print 'Creating new task list...'
+      print('Creating new task list...')
       if not FLAGS.title:
         print('WARNING: Creating task list with no title')
       newTaskList = self.service.tasklists().insert(
@@ -418,7 +418,7 @@ class Tasky(object):
       self.taskLists[newTaskList['id']] = OrderedDict()
       self.PutData()
     elif FLAGS.rename:
-      print 'Renaming task list...'
+      print('Renaming task list...')
       tasklist = self.service.tasklists().get(tasklist=taskListId).execute()
       tasklist['title'] = FLAGS.title
       self.idToTitle[taskListId] = FLAGS.title
@@ -426,8 +426,8 @@ class Tasky(object):
         tasklist=taskListId, body=tasklist).execute()
       self.PutData()
     elif FLAGS.edit:
-      print 'Editing task...'
-      task = tasklist[tasklist.keys()[int(FLAGS.index[0])]]
+      print('Editing task...')
+      task = tasklist[list(tasklist.keys())[int(FLAGS.index[0])]]
       if FLAGS.title:
         task['title'] = FLAGS.title
       if FLAGS.date:
@@ -442,40 +442,40 @@ class Tasky(object):
         return
       task['modified'] = Tasky.MODIFIED
     elif FLAGS.move:
-      print 'Moving task...'
-      task = tasklist[tasklist.keys()[int(FLAGS.index[0])]]
+      print('Moving task...')
+      task = tasklist[list(tasklist.keys())[int(FLAGS.index[0])]]
       self.MoveTask(task)
       self.PutData()
     elif FLAGS.clear:
       if FLAGS.force:
-        print 'Removing all task(s)...'
+        print('Removing all task(s)...')
         for taskId in tasklist:
           self.RemoveTask(tasklist[taskId])
       else:
-        print 'Clearing completed task(s)...'
+        print('Clearing completed task(s)...')
         self.service.tasks().clear(tasklist=taskListId).execute()
         for taskId in tasklist:
           task = tasklist[taskId]
           if task['status'] == 'completed':
             task['modified'] = Tasky.DELETED
     elif FLAGS.remove:
-      print 'Removing task(s)...'
+      print('Removing task(s)...')
       for index in FLAGS.index:
-        self.RemoveTask(tasklist[tasklist.keys()[int(index)]])
+        self.RemoveTask(tasklist[list(tasklist.keys())[int(index)]])
     elif FLAGS.toggle:
-      print 'Toggling task(s)...'
+      print('Toggling task(s)...')
       for index in FLAGS.index:
-        self.ToggleTask(tasklist[tasklist.keys()[int(index)]])
+        self.ToggleTask(tasklist[list(tasklist.keys())[int(index)]])
     elif FLAGS.list:
       if FLAGS['tasklist'].present:
-        print 'Printing Task List %d...' % FLAGS.tasklist
-        tasklistId = self.taskLists.keys()[FLAGS.tasklist]
+        print('Printing Task List %d...' % FLAGS.tasklist)
+        tasklistId = list(self.taskLists.keys())[FLAGS.tasklist]
         if FLAGS.summary:
           self.PrintAllTasks(FLAGS.tasklist, tasklistId, onlySummary=True)
         else:
           self.PrintAllTasks(FLAGS.tasklist, tasklistId)
       else:
-        print 'Printing all Task Lists...'
+        print('Printing all Task Lists...')
         if FLAGS.summary:
           self.PrintSummary()
         else:
@@ -492,16 +492,12 @@ def ReadLoop(tasky):
       else:
         tasky.PrintAllTaskLists()
 
-    # Convert all input to unicode type with utf-8 encoding.
-    readIn = unicode(raw_input(USAGE), 'utf-8')
-    # shlex does not accept unicode types, so convert to str before lexing.
-    # Also prepend a string to hold the place of the application name.
-    args = [''] + shlex.split(readIn.encode('utf-8'))
-    # Decode back to unicode type again before further processing.
-    args = [x.decode('utf-8') for x in args]
+    readIn = input(USAGE)
+    # Prepend a string to hold the place of the application name.
+    args = [''] + shlex.split(readIn)
 
     # Re-populate flags based on this input.
-    FLAGS.Reset()
+    FLAGS.unparse_flags()
     FLAGS(args)
 
     if FLAGS.quit:
@@ -510,10 +506,6 @@ def ReadLoop(tasky):
 
 
 def main(args):
-  # Ensure that stdout is written as utf-8.
-  writer = codecs.getwriter('utf-8')
-  sys.stdout = writer(sys.stdout)
-
   FLAGS(args)
 
   tasky = Tasky()
@@ -530,7 +522,7 @@ def main(args):
         tasky.PrintSummary()
       else:
         if FLAGS['tasklist'].present:
-          tasklistId = tasky.taskLists.keys()[FLAGS.tasklist]
+          tasklistId = list(tasky.taskLists.keys())[FLAGS.tasklist]
           if FLAGS.summary:
             tasky.PrintAllTasks(FLAGS.tasklist, tasklistId, onlySummary=True)
           else:
