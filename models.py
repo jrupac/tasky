@@ -125,6 +125,7 @@ class Task(object):
         print('%s%sNotes: %s%s' % (
           2 * tab, TextColor.NOTES, self._notes, TextColor.CLEAR))
 
+
 class TaskList(object):
   """Class to manage a single list of tasks."""
 
@@ -209,6 +210,7 @@ class TaskList(object):
         task.PrintTask(taskIdx, 2 * tab, summary)
       else:
         task.PrintTask(taskIdx, tab, summary)
+
 
 class TaskLists(object):
   """Class to manage multiple task lists."""
