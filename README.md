@@ -5,7 +5,7 @@
 parallel the functionality of [Todo.txt][todotxt].
 
 ## Dependencies
-Requires Python 3.x, [Google API client for Python](https://code.google.com/p/google-api-python-client/),
+Requires Python 3.7, [Google API client for Python](https://code.google.com/p/google-api-python-client/),
 [absl-py](https://github.com/abseil/abseil-py), [httplib2](https://github.com/httplib2/httplib2) and [oauth2client](https://github.com/google/oauth2client). The needed packages are
 installable from PyPi and are in the `requirements.txt` file. Use
 `pip install -r requirements.txt` to install them. Ensure your pip command points to your pip3 path.
