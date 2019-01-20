@@ -50,6 +50,8 @@ gflags.DEFINE_boolean(
 gflags.DEFINE_boolean(
   'remove', False, 'Remove operation', short_name='r')
 gflags.DEFINE_boolean(
+  'rename', False, 'Rename operation.', short_name='rn')
+gflags.DEFINE_boolean(
   'summary', False, 'Print a summary of the task lists.', short_name='s')
 gflags.DEFINE_boolean(
   'toggle', False, 'Toggle operation', short_name='t')
@@ -71,8 +73,6 @@ gflags.DEFINE_string(
   'note', '', 'A note to attach to a task.')
 gflags.DEFINE_integer(
   'parent', 0, 'Index of parent task.', short_name='p')
-gflags.DEFINE_string(
-  'rename', '', 'Rename a task list.')
 gflags.DEFINE_integer(
   'tasklist', 0, 'Id of task list to operate on.')
 gflags.DEFINE_string(
@@ -80,7 +80,7 @@ gflags.DEFINE_string(
 
 
 USAGE = ('[-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, ' +
-         '[-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, ' +
+         '[-m]ove, [-n]ew list, -rename/-rn, [-s]ummary, [-t]oggle, ' +
          '[-q]uit: ')
 
 # Environment constants
