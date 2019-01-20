@@ -69,13 +69,13 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
     1 Movies ( 1 )
     2 My New List ( 0 )
 ```
-### Rename List (--rename, -r):
+### Rename List (--rename, -rn):
    * Rename an existing task list specified by (--tasklist) with the title
      specified by (--title, -t).
    * The (--summary, -s) flag will only print a summary of each task lists.
 
 ```bash
-    $ tasky -r --title "Books" --tasklist 2 -s
+    $ tasky -rn --title "Books" --tasklist 2 -s
     Renaming task list...
     0 To-Do ( 5 )
     1 Movies ( 1 )
@@ -229,11 +229,11 @@ Many [Todo.txt][todotxt] users rename the script to simply 't'. I recommend some
 
 ```bash
     $ tasky
-    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit: -l -s
+    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list, -rename/-rn, [-s]ummary, [-t]oggle, [-q]uit: -l -s
     0 To-Do ( 2 )
     1 Movies ( 1 )
 
-    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list/re[-n]ame, [-s]ummary, [-t]oggle, [-q]uit:
+    [-a]dd, [-c]lear, [-d]elete, [-e]dit, [-r]emove task, [-l]ist, [-m]ove, [-n]ew list, -rename/-rn, [-s]ummary, [-t]oggle, [-q]uit:
     ...
 ```
 
